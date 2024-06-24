@@ -7,6 +7,9 @@ on: [push]
 jobs:
  build:
    runs-on: ubuntu-latest
+
+   env:
+      JOB_NAME: "guestbook_project"
   
    steps:
    # This action checks out the code from the repository
@@ -45,18 +48,18 @@ jobs:
      run: |
        sed -i "s#BUILDNUM#$GITHUB_RUN_NUMBER#g"  ./gateway-service/pom.xml
        jf  mvnc --repo-resolve-releases=demowei-mvn-virtual --repo-resolve-snapshots=demowei-mvn-virtual --repo-deploy-releases=demowei-mvn-dev-local --repo-deploy-snapshots=demowei-mvn-dev-local
-       jf  mvn clean install -f ./gateway-service/pom.xml --build-name=$GITHUB_RUN_ID --build-number=$GITHUB_RUN_NUMBER --project=demowei
+       jf  mvn clean install -f ./gateway-service/pom.xml --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=demowei
 
 
    - name: Jira Integration
      run: |
        sed -i "s#arti_serverid#demo#g"  ./config.cfg
-       jf rt bag $GITHUB_RUN_NUMBER $GITHUB_RUN_ID  ./ --config ./config.cfg --project=demowei
+       jf rt bag $GITHUB_RUN_NUMBER $JOB_NAME  ./ --config ./config.cfg --project=demowei
 
    - name: Build Docker Project and Push Docker image
      run: |
        docker build -t soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER . 
-       jf docker push soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --build-name=$GITHUB_RUN_ID --build-number=$GITHUB_RUN_NUMBER  --project=demowei
+       jf docker push soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER  --project=demowei
      working-directory: gateway-service
 
    - name: Build Helm Package
@@ -76,25 +79,25 @@ jobs:
      run: |
        #curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
        helm package guestbook
-       jf rt u "guestbook-${{ github.run_number }}.tgz" demowei-helm-dev-local/guestbook/${{ github.run_number }}/ --build-name=$GITHUB_RUN_ID --build-number=$GITHUB_RUN_NUMBER --project=demowei 
+       jf rt u "guestbook-${{ github.run_number }}.tgz" demowei-helm-dev-local/guestbook/${{ github.run_number }}/ --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=demowei 
      working-directory: kube-deploy/charts
 
    - name: Upload Docs
      run: |
         touch "Doc-${{ github.run_number }}.txt"
         echo $GITHUB_RUN_NUMBER > "Doc-${{ github.run_number }}.txt"
-        jf rt u "Doc-${{ github.run_number }}.txt"  demowei-generic-dev-local/${{ github.run_number }}/ --build-name=$GITHUB_RUN_ID --build-number=$GITHUB_RUN_NUMBER --project=demowei
+        jf rt u "Doc-${{ github.run_number }}.txt"  demowei-generic-dev-local/${{ github.run_number }}/ --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=demowei
 
      
    # This action publishes the build information to Artifactory and deletes older builds
    - name: Publish Build-Info to Artifactory
      run: |
-       jf rt bce $GITHUB_RUN_ID $GITHUB_RUN_NUMBER --project=demowei 
-       jf rt bp $GITHUB_RUN_ID $GITHUB_RUN_NUMBER --project=demowei
+       jf rt bce $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei 
+       jf rt bp $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei
 
    - name: Create RBv2
      run: |
-        sed -i "s/build-name/${{ github.run_id }}/g" rbv2.json
+        sed -i "s/build-name/$JOB_NAME/g" rbv2.json
         sed -i "s/build-number/${{ github.run_number }}/g" rbv2.json
         sed -i "s/project-key/demowei/g" rbv2.json
-        jf rbc --spec=./rbv2.json --signing-key=RBv2 --sync=true --project=demowei $GITHUB_RUN_ID  $GITHUB_RUN_NUMBER
+        jf rbc --spec=./rbv2.json --signing-key=RBv2 --sync=true --project=demowei $JOB_NAME  $GITHUB_RUN_NUMBER
