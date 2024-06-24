@@ -16,6 +16,14 @@ jobs:
    - name: Set up Docker Buildx
      uses: docker/setup-buildx-action@v2
 
+   - name: Cache Maven dependencies
+     uses: actions/cache@v2
+     with:
+       path: ~/.m2/repository
+       key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+       restore-keys: |
+         ${{ runner.os }}-maven-
+
    # This action sets up the JFrog CLI with the Artifactory URL and access token     
    - uses: jfrog/setup-jfrog-cli@v4.0.2
      env:
