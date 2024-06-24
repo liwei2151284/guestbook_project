@@ -1,0 +1,25 @@
+node {
+   def mvnHome
+   stage('Preparation') { // for display purposes
+      // Get some code from a GitHub repository
+      git 'https://github.com/alexwang66/Guestbook-microservices-k8s.git'
+
+    //   sh 'git clone https://github.com/alexwang66/notebook-k8s.git  --depth 1'
+      // Get the Maven tool.
+      // ** NOTE: This 'M3' Maven tool must be configured
+      // **       in the global configuration.
+      mvnHome = tool 'maven'
+   }
+   stage('Maven Build') {
+      sh 'mvn package'
+   }
+
+    stage('Discovery service Docker Build') {
+      sh '''
+      cd discovery-service
+      docker build -t art.local:8081/docker-local/guestbook-microservices-k8s/discovery-service:latest .
+      docker push art.local:8081/docker-local/guestbook-microservices-k8s/discovery-service:latest
+      '''
+   }
+
+}

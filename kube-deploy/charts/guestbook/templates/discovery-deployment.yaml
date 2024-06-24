@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discovery-service
+  labels:
+    run: discovery-service
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      run: discovery-service
+  template:
+    metadata:
+      labels:
+        run: discovery-service
+    spec:
+      containers:
+        - name: discovery-service
+          image: "{{ .Values.discovery_image.repository }}:{{ .Values.discovery_image.tag }}"
+          ports:
+            - containerPort: {{ .Values.discovery_service.port }}
+              protocol: TCP
+      imagePullSecrets:
+        - name: regcred-local

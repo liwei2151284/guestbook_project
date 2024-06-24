@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eureka-server
+  namespace: default
+  labels:
+    run: eureka-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: eureka-server
+  template:
+    metadata:
+      labels:
+        run: eureka-server
+    spec:
+      containers:
+      - name: discovery-service
+        image: art.local:8081/docker-local/guestbook-microservices-k8s/discovery-service:latest
+        ports:
+        - containerPort: 8761
+          protocol: TCP
+      imagePullSecrets:
+      - name: regcred-local
+

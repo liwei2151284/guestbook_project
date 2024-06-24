@@ -1,0 +1,9 @@
+/.project
+/.settings/
+**/*.iml
+**/*.idea/
+*.tgz
+**/.sts4-cache/*
+../**/*
+*.out
+

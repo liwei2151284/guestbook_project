@@ -1,0 +1,13 @@
+{
+  "files": [
+    {
+      "pattern": "demo-docker-dev-local/gateway-service/Gateway_Version/"
+    },
+    {
+      "pattern": "demo-docker-dev-local/discovery-service/Discovery_Version/"
+    },
+    {
+      "pattern": "demo-helm-dev-local/guestbook/Guest_Chart_Version/"
+    }
+  ]
+}

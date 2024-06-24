@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: eureka-server
+  namespace: guestbook-namespace
+  labels:
+    run: eureka-server
+spec:
+  ports:
+    - name: port1
+      protocol: TCP
+      port: 8761
+      nodePort: 32002
+  selector:
+    run: eureka-server-blue
+  type: NodePort

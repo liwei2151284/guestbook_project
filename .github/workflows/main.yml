@@ -1,0 +1,85 @@
+name: Push Build to Artifactory
+
+
+on: [push]
+
+
+jobs:
+ build:
+   runs-on: ubuntu-latest
+  
+   steps:
+   # This action checks out the code from the repository
+   - name: Checkout Code
+     uses: actions/checkout@v4
+
+   - name: Set up Docker Buildx
+     uses: docker/setup-buildx-action@v2
+
+   # This action sets up the JFrog CLI with the Artifactory URL and access token     
+   - uses: jfrog/setup-jfrog-cli@v4.0.2
+     env:
+       JF_URL: ${{ secrets.ARTIFACTORY_URL }}
+       JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+
+
+   # This command adds a new server configuration to the JFrog CLI   
+   - run: |
+       export JFROG_CLI_LOG_LEVEL="debug"
+       jf config add demo --url "https://soleng.jfrog.io" --access-token ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }} --interactive=false
+       jf config use demo
+
+
+
+
+   # This action creates a new test file and uploads it to Artifactory   
+   - name: Build Maven Project
+     run: |
+       sed -i "s#BUILDNUM#$GITHUB_RUN_NUMBER#g"  ./gateway-service/pom.xml
+       jf  mvnc --repo-resolve-releases=demowei-mvn-virtual --repo-resolve-snapshots=demowei-mvn-virtual --repo-deploy-releases=demowei-mvn-dev-local --repo-deploy-snapshots=demowei-mvn-dev-local
+       jf  mvn clean install -f ./gateway-service/pom.xml --build-name=$GITHUB_RUN_ID --build-number=$GITHUB_RUN_NUMBER --project=demowei
+
+
+   - name: Jira Integration
+     run: |
+       sed -i "s#arti_serverid#demo#g"  ./config.cfg
+       jf rt bag $GITHUB_RUN_NUMBER $GITHUB_RUN_ID  ./ --config ./config.cfg --project=demowei
+
+   - name: Build Docker Project and Push Docker image
+     run: |
+       docker build -t soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER . 
+       jf docker push soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --build-name=$GITHUB_RUN_ID --build-number=$GITHUB_RUN_NUMBER  --project=demowei
+     working-directory: gateway-service
+
+   - name: Build Helm Package
+     run: |
+       sed -i "s/podCount/2/g" values.yaml
+       sed -i "s/Rigistry_URL/soleng.jfrog.io/g" values.yaml
+       sed -i "s/Rigistry_URL/soleng.jfrog.io/g" values.yaml
+       sed -i "s/Docker_Repo/demowei-docker-dev-local/g" values.yaml
+       sed -i "s/chartversion/$GITHUB_RUN_NUMBER/g" Chart.yaml
+       sed -i "s/Gateway_Repo_Name/gateway-service/g" values.yaml           
+       sed -i "s/gateway_version/$GITHUB_RUN_NUMBER/g" values.yaml
+       sed -i "s/Discovery_Repo_Name/discovery-service/g" values.yaml
+       sed -i "s/discovery_version/$GITHUB_RUN_NUMBER/g" values.yaml
+     working-directory: kube-deploy/charts/guestbook
+
+   - name: Publish Helm Package
+     run: |
+       #curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+       helm package guestbook
+       jf rt u "guestbook-${{ github.run_number }}.tgz" demowei-helm-dev-local/guestbook/${{ github.run_number }}/ --build-name=$GITHUB_RUN_ID --build-number=$GITHUB_RUN_NUMBER --project=demowei 
+     working-directory: kube-deploy/charts
+
+   - name: Upload Docs
+     run: |
+        touch "Doc-${{ github.run_number }}.txt"
+        echo $GITHUB_RUN_NUMBER > "Doc-${{ github.run_number }}.txt"
+        jf rt u "Doc-${{ github.run_number }}.txt"  demowei-generic-dev-local/${{ github.run_number }}/ --build-name=$GITHUB_RUN_ID --build-number=$GITHUB_RUN_NUMBER --project=demowei
+
+     
+   # This action publishes the build information to Artifactory and deletes older builds
+   - name: Publish Build-Info to Artifactory
+     run: |
+       jf rt bce $GITHUB_RUN_ID $GITHUB_RUN_NUMBER --project=demowei 
+       jf rt bp $GITHUB_RUN_ID $GITHUB_RUN_NUMBER --project=demowei

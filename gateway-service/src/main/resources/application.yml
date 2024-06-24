@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: gateway-server
+  zipkin:
+    base-url: http://zipkin-server:9411
+
+endpoints:
+  restart:
+    enabled: true
+  shutdown:
+    enabled: true
+  health:
+    sensitive: false
+
+zuul:
+#  prefix: /guestbook
+  routes:
+    guestbook:
+      path: /**
+      serviceId: guestbook-service
+  ribbon:
+    eager-load:
+      enabled: true
+
+ribbon:
+  eureka:
+    enabled: true
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone:  ${DISCOVERY_URL:http://eureka-server:8761}/eureka/
+    registerWithEureka: false
+
+server:
+  port: 8765
+
+logging:
+  level:
+    ROOT: INFO
+    org.springframework.web: DEBUG

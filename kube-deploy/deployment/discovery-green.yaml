@@ -1,0 +1,27 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eureka-server-green
+  namespace: guestbook-namespace
+  labels:
+    run: eureka-server-green
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      run: eureka-server-green
+  template:
+    metadata:
+      labels:
+        run: eureka-server-green
+    spec:
+      containers:
+        - name: discovery-service
+          image: liwei2151284.jfrog.io/docker-local/guestbook-microservices-k8s/discovery-service:latest
+          ports:
+            - containerPort: 8761
+              protocol: TCP
+      imagePullSecrets:
+        - name: regcred-local
+

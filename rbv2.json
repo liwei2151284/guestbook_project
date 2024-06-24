@@ -1,0 +1,9 @@
+{
+  "files": [
+    {
+      "build": "build-name/build-number",
+      "includeDeps": "false",
+      "project": "project-key"
+    }
+  ]
+}
