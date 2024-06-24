@@ -89,4 +89,4 @@ jobs:
         sed -i "s/build-name/${{ github.run_id }}/g" rbv2.json
         sed -i "s/build-number/${{ github.run_number }}/g" rbv2.json
         sed -i "s/project-key/demowei/g" rbv2.json
-        jf rbc --spec=./rbv2.json --signing-key=RBv2 --sync=true --project=weilife $GITHUB_RUN_ID  $GITHUB_RUN_NUMBER
+        jf rbc --spec=./rbv2.json --signing-key=RBv2 --sync=true --project=demowei $GITHUB_RUN_ID  $GITHUB_RUN_NUMBER
