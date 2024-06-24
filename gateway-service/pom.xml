@@ -46,11 +46,6 @@
 	            <artifactId>log4j-core</artifactId>
 	            <version>2.13.0</version>
 	        </dependency>
-	        <dependency>
-	            <groupId>org.codehaus.mojo</groupId>
-	            <artifactId>versions-maven-plugin</artifactId>
-	            <version>2.2</version>
-	        </dependency>
 		
 	</dependencies>
 
@@ -58,6 +53,11 @@
 		<finalName>gateway-service</finalName>
 		<plugins>
 			<plugin>
+				<dependency>
+			            <groupId>org.codehaus.mojo</groupId>
+			            <artifactId>versions-maven-plugin</artifactId>
+			            <version>2.14.0</version>
+			        </dependency>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
