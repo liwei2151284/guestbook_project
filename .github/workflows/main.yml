@@ -96,9 +96,8 @@ jobs:
    - name: Publish Build-Info to Artifactory
      run: |
        jf rt bce $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei 
-       digest=$(jf rt bp $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei)
-       echo "::set-output name=digest::$digest"
-       echo "${{ steps.build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
+       digest=$(jf rt bp $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei --props="repository_url=${repository_url};ref_name=${ref_name};commit_sha=${commit_sha};commit_message=${commit_message};commit_author=${commit_author};event_url=${event_url}")
+       echo "${{ digest }}" >> $GITHUB_STEP_SUMMARY
 
    - name: Build Scan
      run: |
