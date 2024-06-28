@@ -49,6 +49,7 @@ jobs:
        sed -i "s#BUILDNUM#$GITHUB_RUN_NUMBER#g"  ./gateway-service/pom.xml
        jf  mvnc --repo-resolve-releases=demowei-mvn-virtual --repo-resolve-snapshots=demowei-mvn-virtual --repo-deploy-releases=demowei-mvn-dev-local --repo-deploy-snapshots=demowei-mvn-dev-local
        jf  mvn clean install -f ./gateway-service/pom.xml --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=demowei
+       echo "Jar packages in : ${{ secrets.ARTIFACTORY_URL }}/artifactory/demowei-mvn-dev-local/@${{ steps.build.outputs.digest }}"
 
 
    - name: Jira Integration
@@ -61,6 +62,7 @@ jobs:
        docker build -t soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER . 
        jf docker push soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER  --project=demowei
      working-directory: gateway-service
+       echo "Docker  images in : ${{ secrets.ARTIFACTORY_URL }}/demowei-docker-dev-local/@${{ steps.build.outputs.digest }}"
 
    - name: Build Helm Package
      run: |
@@ -81,19 +83,25 @@ jobs:
        helm package guestbook
        jf rt u "guestbook-${{ github.run_number }}.tgz" demowei-helm-dev-local/guestbook/${{ github.run_number }}/ --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=demowei 
      working-directory: kube-deploy/charts
+       echo "Helm  charts in : ${{ secrets.ARTIFACTORY_URL }}/artifactory/demowei-helm-dev-local/@${{ steps.build.outputs.digest }}"
 
    - name: Upload Docs
      run: |
         touch "Doc-${{ github.run_number }}.txt"
         echo $GITHUB_RUN_NUMBER > "Doc-${{ github.run_number }}.txt"
         jf rt u "Doc-${{ github.run_number }}.txt"  demowei-generic-dev-local/${{ github.run_number }}/ --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=demowei
-
+        echo "Docs   in : ${{ secrets.ARTIFACTORY_URL }}/artifactory/demowei-generic-dev-local/@${{ steps.build.outputs.digest }}"
      
    # This action publishes the build information to Artifactory and deletes older builds
    - name: Publish Build-Info to Artifactory
      run: |
        jf rt bce $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei 
        jf rt bp $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei
+
+   - name: Build Scan
+     run: |
+       jf bs $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei 
+
 
    - name: Create RBv2
      run: |
