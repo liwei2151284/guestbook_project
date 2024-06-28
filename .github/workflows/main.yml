@@ -102,7 +102,6 @@ jobs:
        commit_author="${{ github.event.head_commit.author.name }}"
        event_url="${{ github.event.repository.html_url }}"
        event_name="${{ github.event_name }}"
-       event="${{ toJson(github.event) }}"
        git_owner="${{ github.repository_owner }}"
        head_ref="${{ github.head_ref }}"
        base_ref="${{ github.base_ref }}"
@@ -111,7 +110,7 @@ jobs:
        
        jf rt bce $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei 
        digest=$(jf rt bp $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei)
-       jf rt sp  --build="${JOB_NAME}/${GITHUB_RUN_NUMBER}" "repository_url=${repository_url};ref_name=${ref_name};commit_sha=${commit_sha};commit_message=${commit_message};commit_author=${commit_author};event_url=${event_url};event_name=${event_name};event=${event};git_owner=${git_owner};head_ref=${head_ref};base_ref=${base_ref}" --project=demowei 
+       jf rt sp  --build="${JOB_NAME}/${GITHUB_RUN_NUMBER}" "repository_url=${repository_url};ref_name=${ref_name};commit_sha=${commit_sha};commit_message=${commit_message};commit_author=${commit_author};event_url=${event_url};event_name=${event_name};git_owner=${git_owner};head_ref=${head_ref};base_ref=${base_ref}" --project=demowei 
        echo “${digest}” >> $GITHUB_STEP_SUMMARY
 
    - name: Build Scan
