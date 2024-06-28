@@ -97,7 +97,7 @@ jobs:
      run: |
        jf rt bce $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei 
        digest=$(jf rt bp $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei)
-       jf rt sp  --build="${$JOB_NAME}/${GITHUB_RUN_NUMBER" "repository_url=${repository_url};ref_name=${ref_name};commit_sha=${commit_sha};commit_message=${commit_message};commit_author=${commit_author};event_url=${event_url}" --project=demowei 
+       jf rt sp  --build="${$JOB_NAME}/${GITHUB_RUN_NUMBER}" "repository_url=${repository_url};ref_name=${ref_name};commit_sha=${commit_sha};commit_message=${commit_message};commit_author=${commit_author};event_url=${event_url}" --project=demowei 
        echo “${digest}” >> $GITHUB_STEP_SUMMARY
 
    - name: Build Scan
