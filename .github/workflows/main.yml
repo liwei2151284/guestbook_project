@@ -57,11 +57,6 @@ jobs:
        echo "Jar packages in ： ${{ vars.ARTIFACTORY_URL }}/artifactory/demowei-mvn-dev-local/org/liwei/guestbook-microservices-k8s/gateway-service/1.0.${{ github.run_number }}/gateway-service-1.0.${{ github.run_number }}.jar">> $GITHUB_STEP_SUMMARY
 
 
-   - name: Jira Integration
-     run: |
-       sed -i "s#arti_serverid#demo#g"  ./config.cfg
-       jf rt bag $GITHUB_RUN_NUMBER $JOB_NAME  ./ --config ./config.cfg --project=demowei
-
    - name: Build Docker Project and Push Docker image
      run: |
        docker build -t soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER . 
