@@ -108,17 +108,17 @@ jobs:
        base_ref="${{ github.base_ref }}"
 
        # Check and replace empty variables with 'empty'
-       repository_url="${{ github.repositoryUrl:-empty }}"
-       ref_name="${{ github.ref_name:-empty }}"
-       commit_sha="${{ github.sha:-empty }}"
-       commit_message="${{ github.event.head_commit.message:-empty }}"
-       commit_author="${{ github.event.head_commit.author.name:-empty }}"
-       event_url="${{ github.event.repository.html_url:-empty }}"
-       event_name="${{ github.event_name:-empty }}"
-       git_owner="${{ github.repository_owner:-empty }}"
-       head_ref="${{ github.head_ref:-empty }}"
-       base_ref="${{ github.base_ref:-empty }}"
-
+       repository_url=${repository_url:-empty}
+       ref_name=${ref_name:-empty}
+       commit_sha=${commit_sha:-empty}
+       commit_message=${commit_message:-empty}
+       commit_author=${commit_author:-empty}
+       event_url=${event_url:-empty}
+       event_name=${event_name:-empty}
+       event=${event:-empty}
+       git_owner=${git_owner:-empty}
+       head_ref=${head_ref:-empty}
+       base_ref=${base_ref:-empty}
 
        
        jf rt bce $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei 
