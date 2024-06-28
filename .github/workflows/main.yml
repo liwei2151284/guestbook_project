@@ -101,7 +101,7 @@ jobs:
    # This action publishes the build information to Artifactory and deletes older builds
    - name: Publish Build-Info to Artifactory
      run: |
-       repository_url="${{ github.repository_url }}"
+       repository_url="${{ github.repositoryUrl }}"
        ref_name="${{ github.ref }}"
        commit_sha="${{ github.sha }}"
        commit_message="${{ github.event.head_commit.message }}"
