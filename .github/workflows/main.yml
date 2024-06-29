@@ -137,9 +137,10 @@ jobs:
       echo "### Build Information" >> $GITHUB_STEP_SUMMARY
       echo "" >> $GITHUB_STEP_SUMMARY
       echo "**BuildInfo:**" >> $GITHUB_STEP_SUMMARY
-      echo '```json' >> $GITHUB_STEP_SUMMARY
       echo "${digest}" >> $GITHUB_STEP_SUMMARY
-      echo '```' >> $GITHUB_STEP_SUMMARY
+      echo "" >> $GITHUB_STEP_SUMMARY
+      
+      echo "### Artifacts Information" >> $GITHUB_STEP_SUMMARY
       echo "" >> $GITHUB_STEP_SUMMARY
       echo "**Jar packages:**" >> $GITHUB_STEP_SUMMARY
       echo "[$jar_url]($jar_url)" >> $GITHUB_STEP_SUMMARY
