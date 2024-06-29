@@ -120,6 +120,21 @@ jobs:
        digest=$(jf rt bp $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei)
        jf rt sp  --build="${JOB_NAME}/${GITHUB_RUN_NUMBER}" "repository_url=${repository_url};ref_name=${ref_name};commit_sha=${commit_sha};commit_message=${commit_message};commit_author=${commit_author};event_url=${event_url};event_name=${event_name};git_owner=${git_owner};head_ref=${head_ref};base_ref=${base_ref}" --project=demowei 
 
+       echo "### Commit message:" >> $GITHUB_STEP_SUMMARY
+       echo "" >> $GITHUB_STEP_SUMMARY
+       echo "**BuildInfo:**" >> $GITHUB_STEP_SUMMARY
+       echo "${commit_message}" >> $GITHUB_STEP_SUMMARY
+       echo "" >> $GITHUB_STEP_SUMMARY
+
+       first_field=$(echo "${commit_message}" | awk '{print $1}')
+       jira_url="https://yourcompany.atlassian.net/browse/${first_field}"
+       echo "### Commit message:" >> $GITHUB_STEP_SUMMARY
+       echo "" >> $GITHUB_STEP_SUMMARY
+       echo "**JIRA URL:**" >> $GITHUB_STEP_SUMMARY
+       echo "$jira_url" >> $GITHUB_STEP_SUMMARY
+       echo "" >> $GITHUB_STEP_SUMMARY
+      
+
        echo "### Build Information" >> $GITHUB_STEP_SUMMARY
        echo "" >> $GITHUB_STEP_SUMMARY
        echo "**BuildInfo:**" >> $GITHUB_STEP_SUMMARY
