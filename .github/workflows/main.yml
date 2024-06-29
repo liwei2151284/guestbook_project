@@ -119,6 +119,7 @@ jobs:
        jf rt bce $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei 
        digest=$(jf rt bp $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei)
        #echo "digest=${digest}" >> $GITHUB_ENV
+       printf "digest=%s\n" "$digest" >> $GITHUB_ENV
        jf rt sp  --build="${JOB_NAME}/${GITHUB_RUN_NUMBER}" "repository_url=${repository_url};ref_name=${ref_name};commit_sha=${commit_sha};commit_message=${commit_message};commit_author=${commit_author};event_url=${event_url};event_name=${event_name};git_owner=${git_owner};head_ref=${head_ref};base_ref=${base_ref}" --project=demowei 
 
 
