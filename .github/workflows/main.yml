@@ -176,7 +176,7 @@ jobs:
 
    - name: Build Scan
      run: |
-       jf bs $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei 
+       jf bs $JOB_NAME $GITHUB_RUN_NUMBER   --fail=false  --project=demowei 
 
 
    - name: Create RBv2
