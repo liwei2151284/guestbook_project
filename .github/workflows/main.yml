@@ -92,6 +92,12 @@ jobs:
    # This action publishes the build information to Artifactory and deletes older builds
    - name: Publish Build-Info to Artifactory
      run: |
+
+
+       jf rt bce $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei 
+
+
+
        repository_url="${{ github.repositoryUrl }}"
        ref_name="${{ github.ref }}"
        commit_sha="${{ github.sha }}"
@@ -114,10 +120,9 @@ jobs:
        git_owner=${git_owner:-empty}
        head_ref=${head_ref:-empty}
        base_ref=${base_ref:-empty}
-
        
-       jf rt bce $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei 
        digest=$(jf rt bp $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei)
+       
        jf rt sp  --build="${JOB_NAME}/${GITHUB_RUN_NUMBER}" "repository_url=${repository_url};ref_name=${ref_name};commit_sha=${commit_sha};commit_message=${commit_message};commit_author=${commit_author};event_url=${event_url};event_name=${event_name};git_owner=${git_owner};head_ref=${head_ref};base_ref=${base_ref}" --project=demowei 
 
        echo "### Commit message:" >> $GITHUB_STEP_SUMMARY
