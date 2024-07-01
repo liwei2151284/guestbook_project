@@ -2,21 +2,23 @@ node {
     
     
     stage('SCM'){
-        git 'https://gitee.com/liwei2151284/guestbook_project.git'
+        git 'https:/github.com/liwei2151284/guestbook_project.git'
         sh "sed -i \"s#BUILDNUM#${env.BUILD_NUMBER}#g\"  ./gateway-service/pom.xml"
     }
     
     stage('Build') {
         dir('.') {
+            //set repo for maven resolve and deploy
             sh "jf  mvnc --repo-resolve-releases=maven-org-remote --repo-resolve-snapshots=maven-org-remote --repo-deploy-releases=weilife-maven-dev-local --repo-deploy-snapshots=weilife-maven-dev-local "
+            //mvn build
             sh "jf  mvn clean install -f ./gateway-service/pom.xml --build-name=${env.JOB_NAME} --build-number=${env.BUILD_NUMBER} --project=weilife "
         }
     }
     
-    stage('JIRA integration') {
-        sh "sed -i \"s#arti_serverid#demojfrogchina#g\"  ./config.cfg"
-        sh "jf rt bag ${env.JOB_NAME} ${env.BUILD_NUMBER} ./ --config ./config.cfg --project=weilife"
-    }
+    //stage('JIRA integration') {
+    //    sh "sed -i \"s#arti_serverid#demojfrogchina#g\"  ./config.cfg"
+    //   sh "jf rt bag ${env.JOB_NAME} ${env.BUILD_NUMBER} ./ --config ./config.cfg --project=weilife"
+    //}
     
     stage('Docker build'){
         dir ('gateway-service') {
@@ -32,13 +34,12 @@ node {
 
     
     stage('Scan') {
-        //sh "jf rt bs ${env.JOB_NAME} ${env.BUILD_NUMBER} --fail=false"
-        //sleep 10
+        //scan build
+        sh "jf rt bs ${env.JOB_NAME} ${env.BUILD_NUMBER} --fail=false"
+        
     }
     
     stage('docker image delete') {
-        //sh "jf rt bs ${env.JOB_NAME} ${env.BUILD_NUMBER} --fail=false"
-        //sleep 10
         sh "docker rmi demo.jfrogchina.com/weilife-docker-dev-local/gateway-service:${env.version}"
     }
     
@@ -67,6 +68,7 @@ node {
     stage('helm package'){
         dir('kube-deploy/charts'){
             sh 'helm package guestbook'
+            //deploy helm chart
             sh "jf rt u \"guestbook-${env.version}.tgz\" weilife-helm-dev-local/guestbook/${env.version}/ --build-name=${env.JOB_NAME} --build-number=${env.BUILD_NUMBER} --project=weilife "
         }
     }
@@ -74,13 +76,16 @@ node {
     stage('Docs upload'){
         dir('.'){
             sh "touch \"Doc-${env.version}.txt\";echo \"${env.version}\" > \"Doc-${env.version}.txt\""
+            //deploy Docs
             sh "jf rt u \"Doc-${env.version}.txt\"  weilife-generic-dev-local/${env.version}/ --build-name=${env.JOB_NAME} --build-number=${env.BUILD_NUMBER} --project=weilife"
         }
     }
     
     stage('Publish') {
         dir('.') {
+            //collect env to build info
             sh "jf rt bce ${env.JOB_NAME} ${env.BUILD_NUMBER} --project=weilife "
+            //publish buildinfo to artifactory
             sh "jf rt bp ${env.JOB_NAME} ${env.BUILD_NUMBER} --project=weilife"
         }
     }
@@ -99,6 +104,7 @@ node {
             sh "sed -i 's/build-name/${env.JOB_NAME}/g' rbv2.json"
             sh "sed -i 's/build-number/${env.BUILD_NUMBER}/g' rbv2.json"
             sh "sed -i 's/project-key/weilife/g' rbv2.json"
+            //create release bundle v2
             sh "jf rbc --spec=./rbv2.json --signing-key=slashGPG --sync=true --project=weilife ${env.JOB_NAME} ${env.BUILD_NUMBER} "
         //    sh "sed -i 's/Guest_Chart_Version/${env.version}/g' rb-spec.json"
         //    sh "jf ds rbc --spec=\"rb-spec.json\" --sign=true  --passphrase=Jfr0gchina! guestbook ${env.version} --server-id=trainingcamp"
