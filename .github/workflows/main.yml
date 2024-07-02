@@ -154,10 +154,10 @@ jobs:
       #echo "Docker  images in ： ${{ vars.ARTIFACTORY_URL }}/demowei-docker-dev-local/gateway-service:${{ github.run_number }}"  >> $GITHUB_STEP_SUMMARY
       #echo "Helm  charts in ： ${{ vars.ARTIFACTORY_URL }}/artifactory/demowei-helm-dev-local/guestbook/${{ github.run_number }}/guestbook-${{ github.run_number }}.tgz"  >> $GITHUB_STEP_SUMMARY
       #echo "Docs   in ： ${{ vars.ARTIFACTORY_URL }}/artifactory/demowei-generic-dev-local/${{ github.run_number }}/Doc-${{ github.run_number }}.txt"  >> $GITHUB_STEP_SUMMARY
-      jar_url="${ARTIFACTORY_URL}/artifactory/demowei-mvn-dev-local/org/liwei/guestbook-microservices-k8s/gateway-service/1.0.${run_number}/gateway-service-1.0.${run_number}.jar"
-      docker_url="${ARTIFACTORY_URL}/demowei-docker-dev-local/gateway-service:${run_number}"
-      helm_chart_url="${ARTIFACTORY_URL}/artifactory/demowei-helm-dev-local/guestbook/${run_number}/guestbook-${run_number}.tgz"
-      docs_url="${ARTIFACTORY_URL}/artifactory/demowei-generic-dev-local/${run_number}/Doc-${run_number}.txt"
+      jar_url="${{ vars.ARTIFACTORY_URL }}/artifactory/demowei-mvn-dev-local/org/liwei/guestbook-microservices-k8s/gateway-service/1.0.${{ github.run_number }}/gateway-service-1.0.${{ github.run_number }}.jar"
+      docker_url="${{ vars.ARTIFACTORY_URL }}/demowei-docker-dev-local/gateway-service:${{ github.run_number }}"
+      helm_chart_url="${{ vars.ARTIFACTORY_URL }}/artifactory/demowei-helm-dev-local/guestbook/${{ github.run_number }}/guestbook-${{ github.run_number }}.tgz"
+      docs_url="${{ vars.ARTIFACTORY_URL }}/artifactory/demowei-generic-dev-local/${{ github.run_number }}/Doc-${{ github.run_number }}.txt"
 
       
       echo "### Artifacts Information" >> $GITHUB_STEP_SUMMARY
