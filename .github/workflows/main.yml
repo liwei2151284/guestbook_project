@@ -16,6 +16,7 @@ jobs:
 
    env:
       JOB_NAME: "guestbook_project"
+      JFrog_Project: "demowei"
   
    steps:
    # This action checks out the code from the repository
@@ -53,13 +54,13 @@ jobs:
      run: |
        sed -i "s#BUILDNUM#$GITHUB_RUN_NUMBER#g"  ./gateway-service/pom.xml
        jf  mvnc --repo-resolve-releases=demowei-mvn-virtual --repo-resolve-snapshots=demowei-mvn-virtual --repo-deploy-releases=demowei-mvn-dev-local --repo-deploy-snapshots=demowei-mvn-dev-local
-       jf  mvn clean install -f ./gateway-service/pom.xml --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=demowei
+       jf  mvn clean install -f ./gateway-service/pom.xml --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=$JFrog_Project
      
 
    - name: Build Docker Project and Push Docker image
      run: |
        docker build -t soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER . 
-       jf docker push soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER  --project=demowei
+       jf docker push soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER  --project=$JFrog_Project
      working-directory: gateway-service
 
 
@@ -80,21 +81,21 @@ jobs:
      run: |
        #curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
        helm package guestbook
-       jf rt u "guestbook-${{ github.run_number }}.tgz" demowei-helm-dev-local/guestbook/${{ github.run_number }}/ --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=demowei 
+       jf rt u "guestbook-${{ github.run_number }}.tgz" demowei-helm-dev-local/guestbook/${{ github.run_number }}/ --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=$JFrog_Project 
      working-directory: kube-deploy/charts
 
    - name: Upload Docs
      run: |
         touch "Doc-${{ github.run_number }}.txt"
         echo $GITHUB_RUN_NUMBER > "Doc-${{ github.run_number }}.txt"
-        jf rt u "Doc-${{ github.run_number }}.txt"  demowei-generic-dev-local/${{ github.run_number }}/ --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=demowei
+        jf rt u "Doc-${{ github.run_number }}.txt"  demowei-generic-dev-local/${{ github.run_number }}/ --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=$JFrog_Project
              
    # This action publishes the build information to Artifactory and deletes older builds
    - name: Publish Build-Info to Artifactory
      run: |
 
 
-       jf rt bce $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei 
+       jf rt bce $JOB_NAME $GITHUB_RUN_NUMBER --project=$JFrog_Project 
 
 
 
@@ -121,9 +122,9 @@ jobs:
        head_ref=${head_ref:-empty}
        base_ref=${base_ref:-empty}
        
-       digest=$(jf rt bp $JOB_NAME $GITHUB_RUN_NUMBER --project=demowei)
+       digest=$(jf rt bp $JOB_NAME $GITHUB_RUN_NUMBER --project=$JFrog_Project)
        
-       jf rt sp  --build="${JOB_NAME}/${GITHUB_RUN_NUMBER}" "repository_url=${repository_url};ref_name=${ref_name};commit_sha=${commit_sha};commit_message=${commit_message};commit_author=${commit_author};event_url=${event_url};event_name=${event_name};git_owner=${git_owner};head_ref=${head_ref};base_ref=${base_ref}" --project=demowei 
+       jf rt sp  --build="${JOB_NAME}/${GITHUB_RUN_NUMBER}" "repository_url=${repository_url};ref_name=${ref_name};commit_sha=${commit_sha};commit_message=${commit_message};commit_author=${commit_author};event_url=${event_url};event_name=${event_name};git_owner=${git_owner};head_ref=${head_ref};base_ref=${base_ref}" --project=$JFrog_Project 
 
        echo "### Commit message:" >> $GITHUB_STEP_SUMMARY
        echo "" >> $GITHUB_STEP_SUMMARY
@@ -176,12 +177,12 @@ jobs:
 
    - name: Build Scan
      run: |
-       jf bs $JOB_NAME $GITHUB_RUN_NUMBER   --fail=false  --project=demowei 
+       jf bs $JOB_NAME $GITHUB_RUN_NUMBER   --fail=false  --project=$JFrog_Project 
 
 
    - name: Create RBv2
      run: |
         sed -i "s/build-name/$JOB_NAME/g" rbv2.json
         sed -i "s/build-number/${{ github.run_number }}/g" rbv2.json
-        sed -i "s/project-key/demowei/g" rbv2.json
-        jf rbc --spec=./rbv2.json --signing-key=debian-erika --sync=true --project=demowei $JOB_NAME  $GITHUB_RUN_NUMBER
+        sed -i "s/project-key/$JFrog_Project/g" rbv2.json
+        jf rbc --spec=./rbv2.json --signing-key=debian-erika --sync=true --project=$JFrog_Project $JOB_NAME  $GITHUB_RUN_NUMBER
