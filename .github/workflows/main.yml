@@ -35,16 +35,23 @@ jobs:
          ${{ runner.os }}-maven-
 
    # This action sets up the JFrog CLI with the Artifactory URL and access token     
-   - uses: jfrog/setup-jfrog-cli@v4.0.2
-     env:
-       JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+   #- uses: jfrog/setup-jfrog-cli@v4.0.2
+   #  env:
+   #    JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+   - uses: jfrog/setup-jfrog-cli@v4
+      env:
+          JF_URL: https://soleng.jfrog.io
+      with:
+          oidc-provider-name: liwei-github-oidc 
+          oidc-audience: jfrog-github
+
 
 
    # This command adds a new server configuration to the JFrog CLI   
-   - run: |
-       export JFROG_CLI_LOG_LEVEL="debug"
-       jf config add demo --url "https://soleng.jfrog.io" --access-token ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }} --interactive=false
-       jf config use demo
+   #- run: |
+   #    export JFROG_CLI_LOG_LEVEL="debug"
+   #    jf config add demo --url "https://soleng.jfrog.io" --access-token ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }} --interactive=false
+   #    jf config use demo
 
 
 
