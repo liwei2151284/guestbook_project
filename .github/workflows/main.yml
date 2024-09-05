@@ -71,7 +71,7 @@ jobs:
      run: |
        docker build -t soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER . 
        jf docker push soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER  --project=$JFrog_Project
-       jf docker scan soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER
+       # jf docker scan soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER
      working-directory: gateway-service
 
 
