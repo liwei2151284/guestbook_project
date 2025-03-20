@@ -39,3 +39,7 @@ logging:
   level:
     ROOT: INFO
     org.springframework.web: DEBUG
+
+user:
+  username: wei
+  password: AP9H11kdZT7jHS9C1J4o94A9edd
