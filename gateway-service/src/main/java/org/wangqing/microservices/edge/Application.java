@@ -14,6 +14,11 @@ public class Application {
 
 	public static void main(String[] args) {
 		new SpringApplicationBuilder(Application.class).web(true).run(args);
+		String username = "admin";
+        	String password = "securePassword123";
+
+        	System.out.println("Username: " + username);
+        	System.out.println("Password: " + password);
 	}
 
 	@Bean
@@ -22,13 +27,3 @@ public class Application {
 	}
 	
 } 
-
-public class UserCredentials {
-    public static void main(String[] args) {
-        String username = "admin";
-        String password = "securePassword123";
-
-        System.out.println("Username: " + username);
-        System.out.println("Password: " + password);
-    }
-}
