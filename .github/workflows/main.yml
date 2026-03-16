@@ -31,6 +31,11 @@ jobs:
        java-version: '17'
        cache: maven
 
+   - name: Pin Maven to 3.9.11
+     run: |
+       curl -fsSL https://archive.apache.org/dist/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz -o /tmp/maven.tar.gz
+       sudo tar -xzf /tmp/maven.tar.gz -C /opt
+       echo "/opt/apache-maven-3.9.11/bin" >> $GITHUB_PATH
        
    - name: Set up Docker Buildx
      uses: docker/setup-buildx-action@v2
