@@ -31,12 +31,6 @@ jobs:
        java-version: '17'
        cache: maven
 
-   - name: Show tool versions
-     run: |
-       java -version
-       mvn -version
-       jf --version
-       echo "JAVA_HOME=$JAVA_HOME"
        
    - name: Set up Docker Buildx
      uses: docker/setup-buildx-action@v2
@@ -62,6 +56,12 @@ jobs:
        oidc-audience: jfrog-github
 
 
+   - name: Show tool versions
+     run: |
+       java -version
+       mvn -version
+       jf --version
+       echo "JAVA_HOME=$JAVA_HOME"
 
    # This command adds a new server configuration to the JFrog CLI   
    #- run: |
