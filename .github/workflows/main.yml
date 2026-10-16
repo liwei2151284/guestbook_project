@@ -1,9 +1,9 @@
 name: Push Build to Artifactory
 
 on:
-  push:
-    branches:
-      - main  
+  #push:
+  #  branches:
+  #    - main  
   pull_request:
     branches:
       - main  
@@ -17,7 +17,8 @@ jobs:
 
    env:
       JOB_NAME: "guestbook_project"
-      JFrog_Project: "demowei"
+      JFrog_Project: "alexwangjp"
+      JF_URL: "solenglatest.jfrog.io"
   
    steps:
    # This action checks out the code from the repository
@@ -48,14 +49,10 @@ jobs:
        restore-keys: |
          ${{ runner.os }}-maven-
 
-   # This action sets up the JFrog CLI with the Artifactory URL and access token     
-   #- uses: jfrog/setup-jfrog-cli@v4.9.1
-   #  env:
-   #    JF_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
    - name: Setup JFrog CLI
-     uses: jfrog/setup-jfrog-cli@v4.9.1
-     env:
-       JF_URL: https://soleng.jfrog.io
+     uses: jfrog/setup-jfrog-cli@v5
+     #env:
+     #  JF_URL: https://solenglatest.jfrog.io
      with:
        oidc-provider-name: liwei-github-oidc 
        oidc-audience: jfrog-github
@@ -68,37 +65,29 @@ jobs:
        jf --version
        echo "JAVA_HOME=$JAVA_HOME"
 
-   # This command adds a new server configuration to the JFrog CLI   
-   #- run: |
-   #    export JFROG_CLI_LOG_LEVEL="debug"
-   #    jf config add demo --url "https://soleng.jfrog.io" --access-token ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }} --interactive=false
-   #    jf config use demo
-
-
-
 
    # This action creates a new test file and uploads it to Artifactory   
    - name: Build Maven Project
      run: |
        sed -i "s#BUILDNUM#$GITHUB_RUN_NUMBER#g"  ./gateway-service/pom.xml
-       jf  mvnc --repo-resolve-releases=demowei-mvn-virtual --repo-resolve-snapshots=demowei-mvn-virtual --repo-deploy-releases=demowei-mvn-dev-local --repo-deploy-snapshots=demowei-mvn-dev-local
-       jf  mvn clean install -f ./gateway-service/pom.xml --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=$JFrog_Project
+       jf  mvnc --repo-resolve-releases=${JFrog_Project}-mvn-virtual --repo-resolve-snapshots=${JFrog_Project}-mvn-virtual --repo-deploy-releases=${JFrog_Project}-mvn-dev-local --repo-deploy-snapshots=${JFrog_Project}-mvn-dev-local
+       jf  mvn clean install -f ./gateway-service/pom.xml --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=${JFrog_Project}
      
 
    - name: Build Docker Project and Push Docker image
      run: |
-       docker build -t soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER . 
-       jf docker push soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER  --project=$JFrog_Project
-       jf docker scan soleng.jfrog.io/demowei-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --watches=docker-watch  --fail=false
+       docker build -t ${JF_URL}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER . 
+       jf docker push ${JF_URL}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER  --project=${JFrog_Project}
+       jf docker scan ${JF_URL}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --watches=docker-watch  --fail=false
      working-directory: gateway-service
 
 
    - name: Build Helm Package
      run: |
        sed -i "s/podCount/2/g" values.yaml
-       sed -i "s/Rigistry_URL/soleng.jfrog.io/g" values.yaml
-       sed -i "s/Rigistry_URL/soleng.jfrog.io/g" values.yaml
-       sed -i "s/Docker_Repo/demowei-docker-dev-local/g" values.yaml
+       sed -i "s/Rigistry_URL/${JF_URL}/g" values.yaml
+       sed -i "s/Rigistry_URL/${JF_URL}/g" values.yaml
+       sed -i "s/Docker_Repo/${JFrog_Project}-docker-dev-local/g" values.yaml
        sed -i "s/chartversion/$GITHUB_RUN_NUMBER/g" Chart.yaml
        sed -i "s/Gateway_Repo_Name/gateway-service/g" values.yaml           
        sed -i "s/gateway_version/$GITHUB_RUN_NUMBER/g" values.yaml
@@ -110,22 +99,22 @@ jobs:
      run: |
        #curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
        helm package guestbook
-       jf rt u "guestbook-${{ github.run_number }}.tgz" demowei-helm-dev-local/guestbook/${{ github.run_number }}/ --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=$JFrog_Project 
+       jf rt u "guestbook-${{ github.run_number }}.tgz" ${JFrog_Project}-helm-dev-local/guestbook/${{ github.run_number }}/ --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=${JFrog_Project} 
      working-directory: kube-deploy/charts
 
    - name: Upload Docs
      run: |
         touch "Doc-${{ github.run_number }}.txt"
         echo $GITHUB_RUN_NUMBER > "Doc-${{ github.run_number }}.txt"
-        jf rt u "Doc-${{ github.run_number }}.txt"  demowei-generic-dev-local/${{ github.run_number }}/ --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=$JFrog_Project
+        jf rt u "Doc-${{ github.run_number }}.txt"  ${JFrog_Project}-generic-dev-local/${{ github.run_number }}/ --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=${JFrog_Project}
              
    # This action publishes the build information to Artifactory and deletes older builds
    - name: Publish Build-Info to Artifactory
      run: |
 
 
-       jf rt bce $JOB_NAME $GITHUB_RUN_NUMBER --project=$JFrog_Project 
-       jf rt bag $JOB_NAME $GITHUB_RUN_NUMBER --project=$JFrog_Project 
+       jf rt bce $JOB_NAME $GITHUB_RUN_NUMBER --project=${JFrog_Project} 
+       jf rt bag $JOB_NAME $GITHUB_RUN_NUMBER --project=${JFrog_Project} 
 
 
 
@@ -152,9 +141,9 @@ jobs:
        head_ref=${head_ref:-empty}
        base_ref=${base_ref:-empty}
        
-       digest=$(jf rt bp $JOB_NAME $GITHUB_RUN_NUMBER --project=$JFrog_Project)
+       digest=$(jf rt bp $JOB_NAME $GITHUB_RUN_NUMBER --project=${JFrog_Project})
        
-       jf rt sp  --build="${JOB_NAME}/${GITHUB_RUN_NUMBER}" "repository_url=${repository_url};ref_name=${ref_name};commit_sha=${commit_sha};commit_message=${commit_message};commit_author=${commit_author};event_url=${event_url};event_name=${event_name};git_owner=${git_owner};head_ref=${head_ref};base_ref=${base_ref}" --project=$JFrog_Project 
+       jf rt sp  --build="${JOB_NAME}/${GITHUB_RUN_NUMBER}" "repository_url=${repository_url};ref_name=${ref_name};commit_sha=${commit_sha};commit_message=${commit_message};commit_author=${commit_author};event_url=${event_url};event_name=${event_name};git_owner=${git_owner};head_ref=${head_ref};base_ref=${base_ref}" --project=${JFrog_Project} 
 
        echo "### Commit message:" >> $GITHUB_STEP_SUMMARY
        echo "" >> $GITHUB_STEP_SUMMARY
@@ -181,14 +170,14 @@ jobs:
    - name: Echo Artifacts Info
      run: |
       #echo “BuildInfo in ：${digest}” >> $GITHUB_STEP_SUMMARY
-      #echo "Jar packages in ： ${{ vars.ARTIFACTORY_URL }}/artifactory/demowei-mvn-dev-local/org/liwei/guestbook-microservices-k8s/gateway-service/1.0.${{ github.run_number }}/gateway-service-1.0.${{ github.run_number }}.jar">> $GITHUB_STEP_SUMMARY
-      #echo "Docker  images in ： ${{ vars.ARTIFACTORY_URL }}/demowei-docker-dev-local/gateway-service:${{ github.run_number }}"  >> $GITHUB_STEP_SUMMARY
-      #echo "Helm  charts in ： ${{ vars.ARTIFACTORY_URL }}/artifactory/demowei-helm-dev-local/guestbook/${{ github.run_number }}/guestbook-${{ github.run_number }}.tgz"  >> $GITHUB_STEP_SUMMARY
-      #echo "Docs   in ： ${{ vars.ARTIFACTORY_URL }}/artifactory/demowei-generic-dev-local/${{ github.run_number }}/Doc-${{ github.run_number }}.txt"  >> $GITHUB_STEP_SUMMARY
-      jar_url="${{ vars.ARTIFACTORY_URL }}/artifactory/demowei-mvn-dev-local/org/liwei/guestbook-microservices-k8s/gateway-service/1.0.${{ github.run_number }}/gateway-service-1.0.${{ github.run_number }}.jar"
-      docker_url="${{ vars.ARTIFACTORY_URL }}/demowei-docker-dev-local/gateway-service:${{ github.run_number }}"
-      helm_chart_url="${{ vars.ARTIFACTORY_URL }}/artifactory/demowei-helm-dev-local/guestbook/${{ github.run_number }}/guestbook-${{ github.run_number }}.tgz"
-      docs_url="${{ vars.ARTIFACTORY_URL }}/artifactory/demowei-generic-dev-local/${{ github.run_number }}/Doc-${{ github.run_number }}.txt"
+      #echo "Jar packages in ： ${{ vars.ARTIFACTORY_URL }}/artifactory/${JFrog_Project}-mvn-dev-local/org/liwei/guestbook-microservices-k8s/gateway-service/1.0.${{ github.run_number }}/gateway-service-1.0.${{ github.run_number }}.jar">> $GITHUB_STEP_SUMMARY
+      #echo "Docker  images in ： ${{ vars.ARTIFACTORY_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:${{ github.run_number }}"  >> $GITHUB_STEP_SUMMARY
+      #echo "Helm  charts in ： ${{ vars.ARTIFACTORY_URL }}/artifactory/${JFrog_Project}-helm-dev-local/guestbook/${{ github.run_number }}/guestbook-${{ github.run_number }}.tgz"  >> $GITHUB_STEP_SUMMARY
+      #echo "Docs   in ： ${{ vars.ARTIFACTORY_URL }}/artifactory/${JFrog_Project}-generic-dev-local/${{ github.run_number }}/Doc-${{ github.run_number }}.txt"  >> $GITHUB_STEP_SUMMARY
+      jar_url="${{ vars.ARTIFACTORY_URL }}/artifactory/${JFrog_Project}-mvn-dev-local/org/liwei/guestbook-microservices-k8s/gateway-service/1.0.${{ github.run_number }}/gateway-service-1.0.${{ github.run_number }}.jar"
+      docker_url="${{ vars.ARTIFACTORY_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:${{ github.run_number }}"
+      helm_chart_url="${{ vars.ARTIFACTORY_URL }}/artifactory/${JFrog_Project}-helm-dev-local/guestbook/${{ github.run_number }}/guestbook-${{ github.run_number }}.tgz"
+      docs_url="${{ vars.ARTIFACTORY_URL }}/artifactory/${JFrog_Project}-generic-dev-local/${{ github.run_number }}/Doc-${{ github.run_number }}.txt"
 
       
       echo "### Artifacts Information" >> $GITHUB_STEP_SUMMARY
@@ -207,12 +196,12 @@ jobs:
 
    - name: Build Scan
      run: |
-       jf bs $JOB_NAME $GITHUB_RUN_NUMBER   --fail=false  --project=$JFrog_Project 
+       jf bs $JOB_NAME $GITHUB_RUN_NUMBER   --fail=false  --project=${JFrog_Project} 
 
 
    - name: Create RBv2
      run: |
         sed -i "s/build-name/$JOB_NAME/g" rbv2.json
         sed -i "s/build-number/${{ github.run_number }}/g" rbv2.json
-        sed -i "s/project-key/$JFrog_Project/g" rbv2.json
-        jf rbc --spec=./rbv2.json --signing-key=RBv2 --sync=true --project=$JFrog_Project $JOB_NAME  $GITHUB_RUN_NUMBER
+        sed -i "s/project-key/${JFrog_Project}/g" rbv2.json
+        jf rbc --spec=./rbv2.json --signing-key=RBv2 --sync=true --project=${JFrog_Project} $JOB_NAME  $GITHUB_RUN_NUMBER
