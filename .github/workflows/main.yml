@@ -200,9 +200,9 @@ jobs:
        jf bs $JOB_NAME $GITHUB_RUN_NUMBER   --fail=false  --project=${JFrog_Project} 
 
 
-   - name: Create RBv2
-     run: |
-        sed -i "s/build-name/$JOB_NAME/g" rbv2.json
-        sed -i "s/build-number/${{ github.run_number }}/g" rbv2.json
-        sed -i "s/project-key/${JFrog_Project}/g" rbv2.json
-        jf rbc --spec=./rbv2.json --signing-key=RBv2 --sync=true --project=${JFrog_Project} $JOB_NAME  $GITHUB_RUN_NUMBER
+   #- name: Create RBv2
+   #  run: |
+   #     sed -i "s/build-name/$JOB_NAME/g" rbv2.json
+   #     sed -i "s/build-number/${{ github.run_number }}/g" rbv2.json
+   #     sed -i "s/project-key/${JFrog_Project}/g" rbv2.json
+   #     jf rbc --spec=./rbv2.json --signing-key=RBv2 --sync=true --project=${JFrog_Project} $JOB_NAME  $GITHUB_RUN_NUMBER
