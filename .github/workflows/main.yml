@@ -52,8 +52,8 @@ jobs:
 
    - name: Setup JFrog CLI
      uses: jfrog/setup-jfrog-cli@v5
-     #env:
-     #  JF_URL: https://solenglatest.jfrog.io
+     env:
+       JF_URL: https://${JF_URL}
      with:
        oidc-provider-name: liwei-github-oidc 
        oidc-audience: jfrog-github
