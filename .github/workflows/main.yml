@@ -53,7 +53,7 @@ jobs:
    - name: Setup JFrog CLI
      uses: jfrog/setup-jfrog-cli@v5
      env:
-       JF_URL: https://$JF_URL
+       JF_URL: "https://${{ env.JF_URL }}"
      with:
        oidc-provider-name: liwei-github-oidc 
        oidc-audience: jfrog-github
@@ -77,17 +77,17 @@ jobs:
 
    - name: Build Docker Project and Push Docker image
      run: |
-       docker build -t ${JF_URL}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER . 
-       jf docker push ${JF_URL}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER  --project=${JFrog_Project}
-       jf docker scan ${JF_URL}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --watches=docker-watch  --fail=false
+       docker build -t ${{ env.JF_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER . 
+       jf docker push ${{ env.JF_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER  --project=${JFrog_Project}
+       jf docker scan ${{ env.JF_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --watches=docker-watch  --fail=false
      working-directory: gateway-service
 
 
    - name: Build Helm Package
      run: |
        sed -i "s/podCount/2/g" values.yaml
-       sed -i "s/Rigistry_URL/${JF_URL}/g" values.yaml
-       sed -i "s/Rigistry_URL/${JF_URL}/g" values.yaml
+       sed -i "s/Rigistry_URL/${{ env.JF_URL }}/g" values.yaml
+       sed -i "s/Rigistry_URL/${{ env.JF_URL }}/g" values.yaml
        sed -i "s/Docker_Repo/${JFrog_Project}-docker-dev-local/g" values.yaml
        sed -i "s/chartversion/$GITHUB_RUN_NUMBER/g" Chart.yaml
        sed -i "s/Gateway_Repo_Name/gateway-service/g" values.yaml           
