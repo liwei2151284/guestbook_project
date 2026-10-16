@@ -1,6 +1,7 @@
 name: Push Build to Artifactory
 
 on:
+  workflow_dispatch:
   #push:
   #  branches:
   #    - main  
