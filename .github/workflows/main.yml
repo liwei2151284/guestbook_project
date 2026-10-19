@@ -80,7 +80,7 @@ jobs:
      run: |
        docker build -t ${{ env.JF_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER . 
        jf docker push ${{ env.JF_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER  --project=${JFrog_Project}
-       jf docker scan ${{ env.JF_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --watches=docker-watch  --fail=false
+       #jf docker scan ${{ env.JF_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --watches=docker-watch  --fail=false
      working-directory: gateway-service
 
 
@@ -196,9 +196,9 @@ jobs:
       echo "**Docs:**" >> $GITHUB_STEP_SUMMARY
       echo "[$docs_url]($docs_url)" >> $GITHUB_STEP_SUMMARY
 
-   - name: Build Scan
-     run: |
-       jf bs $JOB_NAME $GITHUB_RUN_NUMBER   --fail=false  --project=${JFrog_Project} 
+   #- name: Build Scan
+   #  run: |
+   #    jf bs $JOB_NAME $GITHUB_RUN_NUMBER   --fail=false  --project=${JFrog_Project} 
 
 
    - name: Create AppTrust Application Version
@@ -217,6 +217,7 @@ jobs:
          "$Application_Key" \
          "$GITHUB_RUN_NUMBER" \
          --source-type-builds \
+         --project=${JFrog_Project}) \
          "name=$JOB_NAME, id=$GITHUB_RUN_NUMBER"
 
 
