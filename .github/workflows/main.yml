@@ -217,8 +217,8 @@ jobs:
          "$Application_Key" \
          "$GITHUB_RUN_NUMBER" \
          --source-type-builds \
-         --project=${JFrog_Project}) \
-         "name=$JOB_NAME, id=$GITHUB_RUN_NUMBER"
+         "name=$JOB_NAME, id=$GITHUB_RUN_NUMBER, repo-key=${JFrog_Project}-build-info" \
+         --project=${JFrog_Project}) 
 
 
    #- name: Create RBv2
