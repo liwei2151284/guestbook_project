@@ -102,9 +102,10 @@ jobs:
    - name: Attest Docker Image with Build Provenance
      uses: actions/attest-build-provenance@v3
      with:
-       subject-name: >-
-         oci://${{ env.JF_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER 
+       subject-name: ${{ env.JF_URL }}/${{ env.JFrog_Project }}-docker-dev-local/gateway-service
        subject-digest: ${{ steps.build-and-push.outputs.digest }}
+       push-to-registry: false
+       show-summary: true
 
    - name: Build Helm Package
      run: |
