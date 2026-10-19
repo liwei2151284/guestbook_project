@@ -11,6 +11,9 @@ on:
 
 permissions:
   id-token: write
+  contents: read
+  attestations: write
+  artifact-metadata: write
 
 jobs:
  build:
