@@ -200,6 +200,25 @@ jobs:
        jf bs $JOB_NAME $GITHUB_RUN_NUMBER   --fail=false  --project=${JFrog_Project} 
 
 
+   - name: Create AppTrust Application Version
+     shell: bash
+     run: |
+       set -euo pipefail
+       echo "============================================"
+       echo "Creating AppTrust Application Version"
+       echo "============================================"
+  
+       echo "Application : $Application_Key"
+       echo "Version     : $GITHUB_RUN_NUMBER"
+       echo "Build       : $Build_name"
+       echo "Build ID    : $GITHUB_RUN_NUMBER"  
+       jf apptrust version-create \
+         "$Application_Key" \
+         "$GITHUB_RUN_NUMBER" \
+         --source-type-builds \
+         "name=$Build_name, id=$GITHUB_RUN_NUMBER"
+
+
    #- name: Create RBv2
    #  run: |
    #     sed -i "s/build-name/$JOB_NAME/g" rbv2.json
