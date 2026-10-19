@@ -100,6 +100,7 @@ jobs:
 
 
    - name: Attest Docker Image with Build Provenance
+     id: attest-provenance
      uses: actions/attest-build-provenance@v3
      with:
        subject-name: oci://${{ env.JF_URL }}/${{ env.JFrog_Project }}-docker-dev-local/gateway-service:${{ github.run_number }}
@@ -242,10 +243,19 @@ jobs:
          --source-type-builds \
          "name=$JOB_NAME, id=$GITHUB_RUN_NUMBER, repo-key=${JFrog_Project}-build-info" 
 
+   - name: Attach Provenance to AppTrust Version
+     shell: bash
+     run: |
+       set -euo pipefail
 
-   #- name: Create RBv2
-   #  run: |
-   #     sed -i "s/build-name/$JOB_NAME/g" rbv2.json
-   #     sed -i "s/build-number/${{ github.run_number }}/g" rbv2.json
-   #     sed -i "s/project-key/${JFrog_Project}/g" rbv2.json
-   #     jf rbc --spec=./rbv2.json --signing-key=RBv2 --sync=true --project=${JFrog_Project} $JOB_NAME  $GITHUB_RUN_NUMBER
+       BUNDLE="${{ steps.attest-provenance.outputs.bundle-path }}"
+
+       test -f "$BUNDLE"
+
+       jf evd create \
+         --sigstore-bundle "$BUNDLE" \
+         --provider-id github \
+         --application-key "$Application_Key" \
+         --application-version "$GITHUB_RUN_NUMBER"
+
+
