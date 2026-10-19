@@ -83,10 +83,10 @@ jobs:
    - name: Build Docker Project and Push Docker image
      id: build-and-push
      run: |
-       jf docker build -t ${{ env.JF_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER  --metadata-file=build-metadata  --output=type=image   --push . --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER  --project=${JFrog_Project}
-       #jf docker push ${{ env.JF_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER  --project=${JFrog_Project}
+       jf docker build -t ${{ env.JF_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER  --metadata-file=build-metadata  --output=type=image   --push . --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER  --project=$JFrog_Project
+       #jf docker push ${{ env.JF_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER  --project=$JFrog_Project
        #jf docker scan ${{ env.JF_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --watches=docker-watch  --fail=false
-       #jf rt build-docker-create ${JFrog_Project}-docker-dev-local  --image-file build-metadata --build-name "$Build_name" --build-number "$GITHUB_RUN_NUMBER"  --project ${JFrog_Project}
+       #jf rt build-docker-create ${JFrog_Project}-docker-dev-local  --image-file build-metadata --build-name "$Build_name" --build-number "$GITHUB_RUN_NUMBER"  --project $JFrog_Project
        
        DIGEST=$(jq -r '.["containerimage.digest"]' build-metadata)
        if [ -z "$DIGEST" ] || [ "$DIGEST" = "null" ]; then
