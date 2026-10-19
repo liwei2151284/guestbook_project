@@ -1,13 +1,14 @@
+
 name: Push Build to Artifactory
 
 on:
   workflow_dispatch:
   push:
     branches:
-      - main  
+      - main
   pull_request:
     branches:
-      - main  
+      - main
 
 permissions:
   id-token: write
@@ -15,247 +16,337 @@ permissions:
   attestations: write
   artifact-metadata: write
 
+env:
+  JOB_NAME: "guestbook_project"
+  JFrog_Project: "alexwangjp"
+  JF_URL: "solenglatest.jfrog.io"
+  Application_Key: "guestbook"
+
 jobs:
- build:
-   runs-on: ubuntu-latest
 
-   env:
-      JOB_NAME: "guestbook_project"
-      JFrog_Project: "alexwangjp"
-      JF_URL: "solenglatest.jfrog.io"
-      Application_Key: "guestbook"
-  
-   steps:
-   # This action checks out the code from the repository
-   - name: Checkout Code
-     uses: actions/checkout@v4
+  # ============================================================
+  # Job 1: Build, Push Artifacts, Publish Build-Info and Collect Evidence
+  # ============================================================
+  build-and-evidence:
+    name: Build and Collect Evidence
+    runs-on: ubuntu-latest
 
-   - name: Set up JDK 17
-     uses: actions/setup-java@v4
-     with:
-       distribution: temurin
-       java-version: '17'
-       cache: maven
+    steps:
+      # 1. Checkout source code
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-   - name: Pin Maven to 3.9.11
-     run: |
-       curl -fsSL https://archive.apache.org/dist/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz -o /tmp/maven.tar.gz
-       sudo tar -xzf /tmp/maven.tar.gz -C /opt
-       echo "/opt/apache-maven-3.9.11/bin" >> $GITHUB_PATH
-       
-   - name: Set up Docker Buildx
-     uses: docker/setup-buildx-action@v2
+      # 2. Set up Java
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
 
-   #- name: Cache Maven dependencies
-   #  uses: actions/cache@v4
-   #  with:
-   #    path: ~/.m2/repository
-   #    key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-   #    restore-keys: |
-   #      ${{ runner.os }}-maven-
+      # 3. Pin Maven version
+      - name: Pin Maven to 3.9.11
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            https://archive.apache.org/dist/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz \
+            -o /tmp/maven.tar.gz
+          sudo tar -xzf /tmp/maven.tar.gz -C /opt
+          echo "/opt/apache-maven-3.9.11/bin" >> "$GITHUB_PATH"
 
-   - name: Setup JFrog CLI
-     uses: jfrog/setup-jfrog-cli@v5
-     env:
-       JF_URL: "https://${{ env.JF_URL }}"
-     with:
-       oidc-provider-name: liwei-github-oidc 
-       oidc-audience: jfrog-github
+      # 4. Set up Docker Buildx
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
 
+      # 5. Set up JFrog CLI with OIDC
+      # Automatic Evidence collection is intentionally enabled.
+      # It runs in the Post Job phase of this Job.
+      - name: Setup JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v5
+        env:
+          JF_URL: https://${{ env.JF_URL }}
+        with:
+          oidc-provider-name: liwei-github-oidc
+          oidc-audience: jfrog-github
 
-   - name: Show tool versions
-     run: |
-       java -version
-       mvn -version
-       jf --version
-       echo "JAVA_HOME=$JAVA_HOME"
+      # 6. Show tool versions
+      - name: Show tool versions
+        shell: bash
+        run: |
+          java -version
+          mvn -version
+          jf --version
+          echo "JAVA_HOME=$JAVA_HOME"
 
+      # 7. Build Maven project
+      - name: Build Maven Project
+        shell: bash
+        run: |
+          set -euo pipefail
 
-   # This action creates a new test file and uploads it to Artifactory   
-   - name: Build Maven Project
-     run: |
-       sed -i "s#BUILDNUM#$GITHUB_RUN_NUMBER#g"  ./gateway-service/pom.xml
-       jf  mvnc --repo-resolve-releases=${JFrog_Project}-mvn-virtual --repo-resolve-snapshots=${JFrog_Project}-mvn-virtual --repo-deploy-releases=${JFrog_Project}-mvn-dev-local --repo-deploy-snapshots=${JFrog_Project}-mvn-dev-local
-       jf  mvn clean install -f ./gateway-service/pom.xml --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=${JFrog_Project}
-     
+          sed -i "s#BUILDNUM#${GITHUB_RUN_NUMBER}#g" \
+            ./gateway-service/pom.xml
 
+          jf mvnc \
+            --repo-resolve-releases="${JFrog_Project}-mvn-virtual" \
+            --repo-resolve-snapshots="${JFrog_Project}-mvn-virtual" \
+            --repo-deploy-releases="${JFrog_Project}-mvn-dev-local" \
+            --repo-deploy-snapshots="${JFrog_Project}-mvn-dev-local"
 
-   - name: Build Docker Project and Push Docker image
-     id: build-and-push
-     run: |
-       jf docker build -t ${{ env.JF_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER  --metadata-file=build-metadata  --output=type=image   --push . --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER  --project=$JFrog_Project
-       #jf docker push ${{ env.JF_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER  --project=$JFrog_Project
-       #jf docker scan ${{ env.JF_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:$GITHUB_RUN_NUMBER --watches=docker-watch  --fail=false
-       jf rt build-docker-create ${JFrog_Project}-docker-dev-local  --image-file build-metadata --build-name "$JOB_NAME" --build-number "$GITHUB_RUN_NUMBER"  --project $JFrog_Project
-       
-       DIGEST=$(jq -r '.["containerimage.digest"]' build-metadata)
-       if [ -z "$DIGEST" ] || [ "$DIGEST" = "null" ]; then
-         echo "ERROR: Docker digest could not be extracted."
-         exit 1
-       fi
-       echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
-       echo "Docker digest:"
-       echo "$DIGEST"
-     working-directory: gateway-service
+          jf mvn clean install \
+            -f ./gateway-service/pom.xml \
+            --build-name="$JOB_NAME" \
+            --build-number="$GITHUB_RUN_NUMBER" \
+            --project="$JFrog_Project"
 
+      # 8. Build and push Docker image
+      - name: Build Docker Project and Push Docker image
+        id: build-and-push
+        shell: bash
+        working-directory: gateway-service
+        run: |
+          set -euo pipefail
 
-   - name: Attest Docker Image with Build Provenance
-     id: attest-provenance
-     uses: actions/attest-build-provenance@v3
-     with:
-       subject-name: oci://${{ env.JF_URL }}/${{ env.JFrog_Project }}-docker-dev-local/gateway-service:${{ github.run_number }}
-       subject-digest: ${{ steps.build-and-push.outputs.digest }}
-       #push-to-registry: false
-       #show-summary: true
+          IMAGE="${JF_URL}/${JFrog_Project}-docker-dev-local/gateway-service:${GITHUB_RUN_NUMBER}"
 
-   - name: Build Helm Package
-     run: |
-       sed -i "s/podCount/2/g" values.yaml
-       sed -i "s/Rigistry_URL/${{ env.JF_URL }}/g" values.yaml
-       sed -i "s/Rigistry_URL/${{ env.JF_URL }}/g" values.yaml
-       sed -i "s/Docker_Repo/${JFrog_Project}-docker-dev-local/g" values.yaml
-       sed -i "s/chartversion/$GITHUB_RUN_NUMBER/g" Chart.yaml
-       sed -i "s/Gateway_Repo_Name/gateway-service/g" values.yaml           
-       sed -i "s/gateway_version/$GITHUB_RUN_NUMBER/g" values.yaml
-       sed -i "s/Discovery_Repo_Name/discovery-service/g" values.yaml
-       sed -i "s/discovery_version/$GITHUB_RUN_NUMBER/g" values.yaml
-     working-directory: kube-deploy/charts/guestbook
+          echo "Building image: $IMAGE"
 
-   - name: Publish Helm Package
-     run: |
-       #curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
-       helm package guestbook
-       jf rt u "guestbook-${{ github.run_number }}.tgz" ${JFrog_Project}-helm-dev-local/guestbook/${{ github.run_number }}/ --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=${JFrog_Project} 
-     working-directory: kube-deploy/charts
+          jf docker build \
+            -t "$IMAGE" \
+            --metadata-file=build-metadata \
+            --output=type=image \
+            --push \
+            . \
+            --build-name="$JOB_NAME" \
+            --build-number="$GITHUB_RUN_NUMBER" \
+            --project="$JFrog_Project"
 
-   - name: Upload Docs
-     run: |
-        touch "Doc-${{ github.run_number }}.txt"
-        echo $GITHUB_RUN_NUMBER > "Doc-${{ github.run_number }}.txt"
-        jf rt u "Doc-${{ github.run_number }}.txt"  ${JFrog_Project}-generic-dev-local/${{ github.run_number }}/ --build-name=$JOB_NAME --build-number=$GITHUB_RUN_NUMBER --project=${JFrog_Project}
-             
-   # This action publishes the build information to Artifactory and deletes older builds
-   - name: Publish Build-Info to Artifactory
-     run: |
+          # Add Docker image information to Build-Info
+          jf rt build-docker-create \
+            "${JFrog_Project}-docker-dev-local" \
+            --image-file build-metadata \
+            --build-name "$JOB_NAME" \
+            --build-number "$GITHUB_RUN_NUMBER" \
+            --project "$JFrog_Project"
 
+          DIGEST=$(jq -r '.["containerimage.digest"]' build-metadata)
 
-       jf rt bce $JOB_NAME $GITHUB_RUN_NUMBER --project=${JFrog_Project} 
-       jf rt bag $JOB_NAME $GITHUB_RUN_NUMBER --project=${JFrog_Project} 
+          if [ -z "$DIGEST" ] || [ "$DIGEST" = "null" ]; then
+            echo "::error::Docker digest could not be extracted."
+            exit 1
+          fi
 
+          echo "digest=$DIGEST" >> "$GITHUB_OUTPUT"
 
+          echo "Docker image: $IMAGE"
+          echo "Docker digest: $DIGEST"
 
-       repository_url="${{ github.repositoryUrl }}"
-       ref_name="${{ github.ref }}"
-       commit_sha="${{ github.sha }}"
-       commit_message="${{ github.event.head_commit.message }}"
-       commit_author="${{ github.event.head_commit.author.name }}"
-       event_url="${{ github.event.repository.html_url }}"
-       event_name="${{ github.event_name }}"
-       git_owner="${{ github.repository_owner }}"
-       head_ref="${{ github.head_ref }}"
-       base_ref="${{ github.base_ref }}"
+      # 9. Generate GitHub SLSA Provenance for the Docker image
+      # JFrog's automatic Evidence collector processes the generated
+      # attestation during this Job's Post Job phase.
+      - name: Attest Docker Image with Build Provenance
+        id: attest-provenance
+        uses: actions/attest-build-provenance@v3
+        with:
+          subject-name: oci://${{ env.JF_URL }}/${{ env.JFrog_Project }}-docker-dev-local/gateway-service
+          subject-digest: ${{ steps.build-and-push.outputs.digest }}
+          push-to-registry: false
+          show-summary: true
 
-       # Check and replace empty variables with 'empty'
-       repository_url=${repository_url:-empty}
-       ref_name=${ref_name:-empty}
-       commit_sha=${commit_sha:-empty}
-       commit_message=${commit_message:-empty}
-       commit_author=${commit_author:-empty}
-       event_url=${event_url:-empty}
-       event_name=${event_name:-empty}
-       git_owner=${git_owner:-empty}
-       head_ref=${head_ref:-empty}
-       base_ref=${base_ref:-empty}
-       
-       digest=$(jf rt bp $JOB_NAME $GITHUB_RUN_NUMBER --project=${JFrog_Project})
-       
-       jf rt sp  --build="${JOB_NAME}/${GITHUB_RUN_NUMBER}" "repository_url=${repository_url};ref_name=${ref_name};commit_sha=${commit_sha};commit_message=${commit_message};commit_author=${commit_author};event_url=${event_url};event_name=${event_name};git_owner=${git_owner};head_ref=${head_ref};base_ref=${base_ref}" --project=${JFrog_Project} 
+      # 10. Prepare Helm chart
+      - name: Build Helm Package
+        shell: bash
+        working-directory: kube-deploy/charts/guestbook
+        run: |
+          set -euo pipefail
 
-       echo "### Commit message:" >> $GITHUB_STEP_SUMMARY
-       echo "" >> $GITHUB_STEP_SUMMARY
-       echo "**Commit message:**" >> $GITHUB_STEP_SUMMARY
-       echo "${commit_message}" >> $GITHUB_STEP_SUMMARY
-       echo "" >> $GITHUB_STEP_SUMMARY
+          sed -i "s/podCount/2/g" values.yaml
+          sed -i "s#Rigistry_URL#${JF_URL}#g" values.yaml
+          sed -i "s#Docker_Repo#${JFrog_Project}-docker-dev-local#g" values.yaml
+          sed -i "s/chartversion/${GITHUB_RUN_NUMBER}/g" Chart.yaml
+          sed -i "s/Gateway_Repo_Name/gateway-service/g" values.yaml
+          sed -i "s/gateway_version/${GITHUB_RUN_NUMBER}/g" values.yaml
+          sed -i "s/Discovery_Repo_Name/discovery-service/g" values.yaml
+          sed -i "s/discovery_version/${GITHUB_RUN_NUMBER}/g" values.yaml
 
-       first_field=$(echo "${commit_message}" | awk '{print $1}')
-       jira_url="https://yourcompany.atlassian.net/browse/${first_field}"
-       echo "### JIRA URL:" >> $GITHUB_STEP_SUMMARY
-       echo "" >> $GITHUB_STEP_SUMMARY
-       echo "**JIRA URL:**" >> $GITHUB_STEP_SUMMARY
-       echo "$jira_url" >> $GITHUB_STEP_SUMMARY
-       echo "" >> $GITHUB_STEP_SUMMARY
-      
+      # 11. Publish Helm chart
+      - name: Publish Helm Package
+        shell: bash
+        working-directory: kube-deploy/charts
+        run: |
+          set -euo pipefail
 
-       # echo "### Build Information" >> $GITHUB_STEP_SUMMARY
-       # echo "" >> $GITHUB_STEP_SUMMARY
-       # echo "**BuildInfo:**" >> $GITHUB_STEP_SUMMARY
-       # echo "" >> $GITHUB_STEP_SUMMARY
-       # echo "${digest}" >> $GITHUB_STEP_SUMMARY
-       # echo "" >> $GITHUB_STEP_SUMMARY
+          helm package guestbook
 
-   - name: Echo Artifacts Info
-     run: |
-      #echo “BuildInfo in ：${digest}” >> $GITHUB_STEP_SUMMARY
-      #echo "Jar packages in ： ${{ vars.ARTIFACTORY_URL }}/artifactory/${JFrog_Project}-mvn-dev-local/org/liwei/guestbook-microservices-k8s/gateway-service/1.0.${{ github.run_number }}/gateway-service-1.0.${{ github.run_number }}.jar">> $GITHUB_STEP_SUMMARY
-      #echo "Docker  images in ： ${{ vars.ARTIFACTORY_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:${{ github.run_number }}"  >> $GITHUB_STEP_SUMMARY
-      #echo "Helm  charts in ： ${{ vars.ARTIFACTORY_URL }}/artifactory/${JFrog_Project}-helm-dev-local/guestbook/${{ github.run_number }}/guestbook-${{ github.run_number }}.tgz"  >> $GITHUB_STEP_SUMMARY
-      #echo "Docs   in ： ${{ vars.ARTIFACTORY_URL }}/artifactory/${JFrog_Project}-generic-dev-local/${{ github.run_number }}/Doc-${{ github.run_number }}.txt"  >> $GITHUB_STEP_SUMMARY
-      jar_url="${{ vars.ARTIFACTORY_URL }}/artifactory/${JFrog_Project}-mvn-dev-local/org/liwei/guestbook-microservices-k8s/gateway-service/1.0.${{ github.run_number }}/gateway-service-1.0.${{ github.run_number }}.jar"
-      docker_url="${{ vars.ARTIFACTORY_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:${{ github.run_number }}"
-      helm_chart_url="${{ vars.ARTIFACTORY_URL }}/artifactory/${JFrog_Project}-helm-dev-local/guestbook/${{ github.run_number }}/guestbook-${{ github.run_number }}.tgz"
-      docs_url="${{ vars.ARTIFACTORY_URL }}/artifactory/${JFrog_Project}-generic-dev-local/${{ github.run_number }}/Doc-${{ github.run_number }}.txt"
+          jf rt upload \
+            "guestbook-${GITHUB_RUN_NUMBER}.tgz" \
+            "${JFrog_Project}-helm-dev-local/guestbook/${GITHUB_RUN_NUMBER}/" \
+            --build-name="$JOB_NAME" \
+            --build-number="$GITHUB_RUN_NUMBER" \
+            --project="$JFrog_Project"
 
-      
-      echo "### Artifacts Information" >> $GITHUB_STEP_SUMMARY
-      echo "" >> $GITHUB_STEP_SUMMARY
-      echo "**Jar packages:**" >> $GITHUB_STEP_SUMMARY
-      echo "[$jar_url]($jar_url)" >> $GITHUB_STEP_SUMMARY
-      echo "" >> $GITHUB_STEP_SUMMARY
-      echo "**Docker images:**" >> $GITHUB_STEP_SUMMARY
-      echo "[$docker_url]($docker_url)" >> $GITHUB_STEP_SUMMARY
-      echo "" >> $GITHUB_STEP_SUMMARY
-      echo "**Helm charts:**" >> $GITHUB_STEP_SUMMARY
-      echo "[$helm_chart_url]($helm_chart_url)" >> $GITHUB_STEP_SUMMARY
-      echo "" >> $GITHUB_STEP_SUMMARY
-      echo "**Docs:**" >> $GITHUB_STEP_SUMMARY
-      echo "[$docs_url]($docs_url)" >> $GITHUB_STEP_SUMMARY
+      # 12. Upload documentation
+      - name: Upload Docs
+        shell: bash
+        run: |
+          set -euo pipefail
 
-   #- name: Build Scan
-   #  run: |
-   #    jf bs $JOB_NAME $GITHUB_RUN_NUMBER   --fail=false  --project=${JFrog_Project} 
+          DOC_FILE="Doc-${GITHUB_RUN_NUMBER}.txt"
+          echo "$GITHUB_RUN_NUMBER" > "$DOC_FILE"
 
+          jf rt upload \
+            "$DOC_FILE" \
+            "${JFrog_Project}-generic-dev-local/${GITHUB_RUN_NUMBER}/" \
+            --build-name="$JOB_NAME" \
+            --build-number="$GITHUB_RUN_NUMBER" \
+            --project="$JFrog_Project"
 
-   - name: Create AppTrust Application Version
-     shell: bash
-     run: |
-       set -euo pipefail
-       echo "============================================"
-       echo "Creating AppTrust Application Version"
-       echo "============================================"
-  
-       echo "Application : $Application_Key"
-       echo "Version     : $GITHUB_RUN_NUMBER"
-       echo "Build       : $JOB_NAME"
-       echo "Build ID    : $GITHUB_RUN_NUMBER"  
-       jf apptrust version-create \
-         "$Application_Key" \
-         "$GITHUB_RUN_NUMBER" \
-         --source-type-builds \
-         "name=$JOB_NAME, id=$GITHUB_RUN_NUMBER, repo-key=${JFrog_Project}-build-info" 
+      # 13. Publish Build-Info and environment/VCS metadata
+      - name: Publish Build-Info to Artifactory
+        shell: bash
+        env:
+          REPOSITORY_URL: ${{ github.repositoryUrl }}
+          REF_NAME: ${{ github.ref }}
+          COMMIT_SHA: ${{ github.sha }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          COMMIT_AUTHOR: ${{ github.event.head_commit.author.name }}
+          EVENT_URL: ${{ github.event.repository.html_url }}
+          EVENT_NAME: ${{ github.event_name }}
+          GIT_OWNER: ${{ github.repository_owner }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
 
-   - name: Attach Provenance to AppTrust Version
-     shell: bash
-     run: |
-       set -euo pipefail
+          repository_url="${REPOSITORY_URL:-empty}"
+          ref_name="${REF_NAME:-empty}"
+          commit_sha="${COMMIT_SHA:-empty}"
+          commit_message="${COMMIT_MESSAGE:-empty}"
+          commit_author="${COMMIT_AUTHOR:-empty}"
+          event_url="${EVENT_URL:-empty}"
+          event_name="${EVENT_NAME:-empty}"
+          git_owner="${GIT_OWNER:-empty}"
+          head_ref="${HEAD_REF:-empty}"
+          base_ref="${BASE_REF:-empty}"
 
-       BUNDLE="${{ steps.attest-provenance.outputs.bundle-path }}"
+          # Collect environment and Git metadata
+          jf rt build-collect-env \
+            "$JOB_NAME" "$GITHUB_RUN_NUMBER" \
+            --project="$JFrog_Project"
 
-       test -f "$BUNDLE"
+          jf rt build-add-git \
+            "$JOB_NAME" "$GITHUB_RUN_NUMBER" \
+            --project="$JFrog_Project"
 
-       jf evd create \
-         --sigstore-bundle "$BUNDLE" \
-         --provider-id github \
-         --application-key "$Application_Key" \
-         --application-version "$GITHUB_RUN_NUMBER"
+          # Publish Build-Info
+          jf rt build-publish \
+            "$JOB_NAME" "$GITHUB_RUN_NUMBER" \
+            --project="$JFrog_Project"
 
+          # Attach additional Build-Info properties
+          jf rt build-promote-properties \
+            --build-name="$JOB_NAME" \
+            --build-number="$GITHUB_RUN_NUMBER" \
+            --project="$JFrog_Project" || true
 
+          jf rt build-set-props \
+            --build="${JOB_NAME}/${GITHUB_RUN_NUMBER}" \
+            "repository_url=${repository_url};ref_name=${ref_name};commit_sha=${commit_sha};commit_message=${commit_message};commit_author=${commit_author};event_url=${event_url};event_name=${event_name};git_owner=${git_owner};head_ref=${head_ref};base_ref=${base_ref}" \
+            --project="$JFrog_Project" || true
+
+          {
+            echo "### Commit message:"
+            echo
+            echo "$commit_message"
+            echo
+            echo "### JIRA URL:"
+            echo
+            first_field=$(printf '%s\n' "$commit_message" | awk '{print $1}')
+            echo "https://yourcompany.atlassian.net/browse/${first_field}"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # 14. Summarize artifact locations
+      - name: Echo Artifacts Info
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jar_url="${{ vars.ARTIFACTORY_URL }}/artifactory/${JFrog_Project}-mvn-dev-local/org/liwei/guestbook-microservices-k8s/gateway-service/1.0.${GITHUB_RUN_NUMBER}/gateway-service-1.0.${GITHUB_RUN_NUMBER}.jar"
+
+          docker_url="${{ vars.ARTIFACTORY_URL }}/${JFrog_Project}-docker-dev-local/gateway-service:${GITHUB_RUN_NUMBER}"
+
+          helm_chart_url="${{ vars.ARTIFACTORY_URL }}/artifactory/${JFrog_Project}-helm-dev-local/guestbook/${GITHUB_RUN_NUMBER}/guestbook-${GITHUB_RUN_NUMBER}.tgz"
+
+          docs_url="${{ vars.ARTIFACTORY_URL }}/artifactory/${JFrog_Project}-generic-dev-local/${GITHUB_RUN_NUMBER}/Doc-${GITHUB_RUN_NUMBER}.txt"
+
+          {
+            echo "### Artifacts Information"
+            echo
+            echo "**Jar packages:**"
+            echo "[$jar_url]($jar_url)"
+            echo
+            echo "**Docker images:**"
+            echo "[$docker_url]($docker_url)"
+            echo
+            echo "**Helm charts:**"
+            echo "[$helm_chart_url]($helm_chart_url)"
+            echo
+            echo "**Docs:**"
+            echo "[$docs_url]($docs_url)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+    # IMPORTANT:
+    # The JFrog setup action's Post Job phase runs after all steps above.
+    # The next Job waits for this Job to finish.
+
+  # ============================================================
+  # Job 2: Create AppTrust Application Version
+  # ============================================================
+  create-application:
+    name: Create AppTrust Application Version
+    runs-on: ubuntu-latest
+
+    # Wait for Job 1, including its Post Job cleanup/evidence collection.
+    needs: build-and-evidence
+
+    # This Job only creates the AppTrust version.
+    # It does not need to publish Build-Info or collect attestations again.
+    steps:
+      - name: Setup JFrog CLI
+        uses: jfrog/setup-jfrog-cli@v5
+        env:
+          JF_URL: https://${{ env.JF_URL }}
+        with:
+          oidc-provider-name: liwei-github-oidc
+          oidc-audience: jfrog-github
+          disable-auto-build-publish: true
+          disable-auto-evidence-collection: true
+
+      - name: Verify JFrog Connection
+        shell: bash
+        run: |
+          set -euo pipefail
+          jf rt ping
+
+      - name: Create AppTrust Application Version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "============================================"
+          echo "Creating AppTrust Application Version"
+          echo "============================================"
+
+          echo "Application : $Application_Key"
+          echo "Version     : $GITHUB_RUN_NUMBER"
+          echo "Build       : $JOB_NAME"
+          echo "Build ID    : $GITHUB_RUN_NUMBER"
+          echo "Project     : $JFrog_Project"
+
+          jf apptrust version-create \
+            "$Application_Key" \
+            "$GITHUB_RUN_NUMBER" \
+            --source-type-builds \
+            "name=$JOB_NAME, id=$GITHUB_RUN_NUMBER, repo-key=${JFrog_Project}-build-info"
