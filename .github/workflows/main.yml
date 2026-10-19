@@ -20,6 +20,7 @@ jobs:
       JOB_NAME: "guestbook_project"
       JFrog_Project: "alexwangjp"
       JF_URL: "solenglatest.jfrog.io"
+      Application_Key: "guestbook"
   
    steps:
    # This action checks out the code from the repository
