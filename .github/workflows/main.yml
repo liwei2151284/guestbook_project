@@ -204,6 +204,7 @@ jobs:
 
       # 13. Publish Build-Info and environment/VCS metadata
       - name: Publish Build-Info to Artifactory
+        id: jira
         shell: bash
         env:
           REPOSITORY_URL: ${{ github.repositoryUrl }}
@@ -263,6 +264,7 @@ jobs:
             echo "### JIRA URL:"
             echo
             first_field=$(printf '%s\n' "$commit_message" | awk '{print $1}')
+            echo "jira_ids=$first_field" >> "$GITHUB_OUTPUT"
             echo "https://yourcompany.atlassian.net/browse/${first_field}"
             echo
           } >> "$GITHUB_STEP_SUMMARY"
@@ -296,6 +298,67 @@ jobs:
             echo "**Docs:**"
             echo "[$docs_url]($docs_url)"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      # 15. Get signing key 
+      - name: Write PEM from secret
+        run: |
+          umask 077
+          cat > jfrog-signing-key.pem <<'EOF'
+          ${{ secrets.JFROG_CLI_SIGNING_KEY }}
+          EOF
+          head -n 1 jfrog-signing-key.pem
+          tail -n 1 jfrog-signing-key.pem
+
+
+
+      - name: Generate default JIRA evidence files
+        if: ${{ steps.jira.outputs.jira_ids != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          # 转成 JSON array
+          IDS_JSON=$(printf '%s\n' "${{ steps.jira.outputs.jira_ids }}" | tr ' ' '\n' | awk 'NF' | jq -R . | jq -s .)
+          cat > jira-evidence-predicate.json <<EOF
+          {
+            "schemaVersion": "1.0",
+            "type": "jira-ids-local",
+            "build": {
+              "name": "${Build_name}",
+              "number": "${GITHUB_RUN_NUMBER}"
+            },
+            "jira": {
+              "ids": ${IDS_JSON}
+            },
+            "source": {
+              "repo": "${GITHUB_REPOSITORY}",
+              "ref": "${GITHUB_REF}",
+              "sha": "${GITHUB_SHA}",
+              "run_url": "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            },
+            "created_at": "$(date -u +%FT%TZ)"
+          }
+          EOF
+          cat > jira-evidence.md <<EOF
+          ## JIRA Evidence (Local Extraction)
+          This evidence is generated **without querying Jira**.
+          JIRA IDs are extracted from the latest git commit message.
+          - Build: \`${Build_name} #${GITHUB_RUN_NUMBER}\`
+          - Repo: \`${GITHUB_REPOSITORY}\`
+          - Commit: \`${GITHUB_SHA}\`
+          - Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          **JIRA IDs**
+          - ${{ steps.jira.outputs.jira_ids }}
+          EOF
+
+      - name: Evidence on docker image
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "🔍 Creating evidence on docker image..."
+          jf evd create --subject-repo-path ${JFrog_Project}-docker-dev-local/gateway-service/${GITHUB_RUN_NUMBER}/manifest.json  \
+            --project $Project_Key --predicate ./jira-evidence-predicate.json --predicate-type "http://atlassian.com/jira/issues/v1" \
+            --markdown ./jira-evidence.md --provider-id jira  ./jfrog-signing-key.pem
+
 
     # IMPORTANT:
     # The JFrog setup action's Post Job phase runs after all steps above.
