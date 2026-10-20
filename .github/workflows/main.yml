@@ -440,6 +440,85 @@ jobs:
             --key ./jfrog-signing-key.pem
 
 
+
+      - name: Generate SonarQube evidence files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > sonarqube-evidence-predicate.json <<EOF
+          {
+            "schemaVersion": "1.0",
+            "type": "sonarqube-analysis",
+            "demo_data": true,
+            "build": {
+              "name": "${JOB_NAME:-gateway-service}",
+              "number": "${GITHUB_RUN_NUMBER}"
+            },
+            "sonarqube": {
+              "project_key": "gateway-service",
+              "project_name": "Gateway Service",
+              "quality_gate": "OK",
+              "analysis_status": "SUCCESS",
+              "metrics": {
+                "bugs": 0,
+                "vulnerabilities": 0,
+                "security_hotspots": 2,
+                "code_smells": 12,
+                "coverage_percent": 85.6,
+                "duplicated_lines_density": 2.1,
+                "lines_of_code": 1260
+              }
+            },
+            "source": {
+              "repo": "${GITHUB_REPOSITORY}",
+              "ref": "${GITHUB_REF}",
+              "sha": "${GITHUB_SHA}",
+              "run_url": "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            },
+            "created_at": "$(date -u +%FT%TZ)"
+          }
+          EOF
+
+          cat > sonarqube-evidence.md <<EOF
+          ## SonarQube Code Quality Evidence
+
+          **Demo data — not an actual SonarQube scan**
+
+          - Project: gateway-service
+          - Quality Gate: OK
+          - Analysis Status: SUCCESS
+          - Bugs: 0
+          - Vulnerabilities: 0
+          - Security Hotspots: 2
+          - Code Smells: 12
+          - Coverage: 85.6%
+          - Duplicated Lines: 2.1%
+          - Lines of Code: 1260
+
+          ## Build Information
+
+          - Build: \`${JOB_NAME:-gateway-service} #${GITHUB_RUN_NUMBER}\`
+          - Repository: \`${GITHUB_REPOSITORY}\`
+          - Commit: \`${GITHUB_SHA}\`
+          - Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+          EOF
+
+      - name: Create SonarQube Evidence on Docker image
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jf evd create \
+            --subject-repo-path "${JFrog_Project}-docker-dev-local/gateway-service/${GITHUB_RUN_NUMBER}/manifest.json" \
+            --project "$JFrog_Project" \
+            --predicate ./sonarqube-evidence-predicate.json \
+            --predicate-type "https://jfrog.com/evidence/sonarqube-analysis/v1" \
+            --markdown ./sonarqube-evidence.md \
+            --provider-id sonar \
+            --key ./jfrog-signing-key.pem
+
+
     # IMPORTANT:
     # The JFrog setup action's Post Job phase runs after all steps above.
     # The next Job waits for this Job to finish.
