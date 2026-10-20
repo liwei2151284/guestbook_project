@@ -357,7 +357,7 @@ jobs:
           set -euo pipefail
           echo "🔍 Creating evidence on docker image..."
           jf evd create --subject-repo-path ${JFrog_Project}-docker-dev-local/gateway-service/${GITHUB_RUN_NUMBER}/manifest.json  \
-            --project $Project_Key --predicate ./jira-evidence-predicate.json --predicate-type "http://atlassian.com/jira/issues/v1" \
+            --project $JFrog_Project --predicate ./jira-evidence-predicate.json --predicate-type "http://atlassian.com/jira/issues/v1" \
             --markdown ./jira-evidence.md --provider-id jira  ./jfrog-signing-key.pem
 
 
