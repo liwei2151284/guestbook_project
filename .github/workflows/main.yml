@@ -324,7 +324,7 @@ jobs:
             "schemaVersion": "1.0",
             "type": "jira-ids-local",
             "build": {
-              "name": "${Build_name}",
+              "name": "${JOB_NAME}",
               "number": "${GITHUB_RUN_NUMBER}"
             },
             "jira": {
@@ -343,7 +343,7 @@ jobs:
           ## JIRA Evidence (Local Extraction)
           This evidence is generated **without querying Jira**.
           JIRA IDs are extracted from the latest git commit message.
-          - Build: \`${Build_name} #${GITHUB_RUN_NUMBER}\`
+          - Build: \`${JOB_NAME} #${GITHUB_RUN_NUMBER}\`
           - Repo: \`${GITHUB_REPOSITORY}\`
           - Commit: \`${GITHUB_SHA}\`
           - Run: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
