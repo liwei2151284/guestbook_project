@@ -361,6 +361,85 @@ jobs:
             --markdown ./jira-evidence.md --provider-id jira --key ./jfrog-signing-key.pem
 
 
+
+      - name: Generate JUnit evidence files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p target/surefire-reports
+
+          # 生成模拟 JUnit 测试报告
+          cat > target/surefire-reports/TEST-demo.xml <<'EOF'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <testsuite name="gateway-service"
+                     tests="3" failures="0" errors="0"
+                     skipped="1" time="1.25">
+            <testcase classname="GatewayTest" name="testHealthCheck" time="0.45"/>
+            <testcase classname="GatewayTest" name="testResponse" time="0.60"/>
+            <testcase classname="GatewayTest" name="testAuthentication" time="0.20">
+              <skipped message="Demo test skipped"/>
+            </testcase>
+          </testsuite>
+          EOF
+
+          # 生成 Evidence Predicate
+          cat > junit-evidence-predicate.json <<EOF
+          {
+            "schemaVersion": "1.0",
+            "type": "junit-test-results",
+            "build": {
+              "name": "${JOB_NAME:-gateway-service}",
+              "number": "${GITHUB_RUN_NUMBER}"
+            },
+            "test_summary": {
+              "total": 3,
+              "passed": 2,
+              "failed": 0,
+              "skipped": 1,
+              "duration_seconds": 1.25
+            },
+            "source": {
+              "repo": "${GITHUB_REPOSITORY}",
+              "ref": "${GITHUB_REF}",
+              "sha": "${GITHUB_SHA}",
+              "run_url": "https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+            },
+            "created_at": "$(date -u +%FT%TZ)"
+          }
+          EOF
+
+          # 生成 Markdown 摘要
+          cat > junit-evidence.md <<EOF
+          ## JUnit Test Evidence
+
+          - Build: \`${JOB_NAME:-gateway-service} #${GITHUB_RUN_NUMBER}\`
+          - Repository: \`${GITHUB_REPOSITORY}\`
+          - Commit: \`${GITHUB_SHA}\`
+          - Total tests: 3
+          - Passed: 2
+          - Failed: 0
+          - Skipped: 1
+          - Duration: 1.25 seconds
+
+          This is a demo JUnit report for Evidence integration testing.
+          EOF
+
+      - name: Create JUnit Evidence on Docker image
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jf evd create \
+            --subject-repo-path "${JFrog_Project}-docker-dev-local/gateway-service/${GITHUB_RUN_NUMBER}/manifest.json" \
+            --project "$JFrog_Project" \
+            --predicate ./junit-evidence-predicate.json \
+            --predicate-type "https://jfrog.com/evidence/test-results/v1" \
+            --markdown ./junit-evidence.md \
+            --provider-id junit \
+            --key ./jfrog-signing-key.pem
+
+
     # IMPORTANT:
     # The JFrog setup action's Post Job phase runs after all steps above.
     # The next Job waits for this Job to finish.
