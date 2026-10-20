@@ -264,10 +264,11 @@ jobs:
             echo "### JIRA URL:"
             echo
             first_field=$(printf '%s\n' "$commit_message" | awk '{print $1}')
-            echo "jira_ids=$first_field" >> "$GITHUB_OUTPUT"
             echo "https://yourcompany.atlassian.net/browse/${first_field}"
             echo
           } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "jira_ids=$first_field" >> "$GITHUB_OUTPUT"
 
       # 14. Summarize artifact locations
       - name: Echo Artifacts Info
