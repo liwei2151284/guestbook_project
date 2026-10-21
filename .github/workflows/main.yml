@@ -45,15 +45,15 @@ jobs:
           cache: maven
 
       # 3. Pin Maven version
-      - name: Pin Maven to 3.9.11
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl -fsSL \
-            https://archive.apache.org/dist/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz \
-            -o /tmp/maven.tar.gz
-          sudo tar -xzf /tmp/maven.tar.gz -C /opt
-          echo "/opt/apache-maven-3.9.11/bin" >> "$GITHUB_PATH"
+      #- name: Pin Maven to 3.9.11
+      #  shell: bash
+      #  run: |
+      #    set -euo pipefail
+      #    curl -fsSL \
+      #      https://archive.apache.org/dist/maven/maven-3/3.9.11/binaries/apache-maven-3.9.11-bin.tar.gz \
+      #      -o /tmp/maven.tar.gz
+      #    sudo tar -xzf /tmp/maven.tar.gz -C /opt
+      #    echo "/opt/apache-maven-3.9.11/bin" >> "$GITHUB_PATH"
 
       # 4. Set up Docker Buildx
       - name: Set up Docker Buildx
