@@ -18,17 +18,11 @@
 
     <dependencies>
 
-        <!-- Eureka 服务注册与发现 -->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-eureka</artifactId>
-        </dependency>
-
-        <!-- Zuul 网关核心依赖 -->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-zuul</artifactId>
-        </dependency>
+    <!-- Eureka 服务发现：版本由 Spring Cloud BOM 管理 -->
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+    </dependency>
 
         <!-- 按要求保留 Log4j Core -->
         <dependency>
