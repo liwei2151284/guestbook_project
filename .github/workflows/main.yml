@@ -45,6 +45,10 @@ jobs:
           cache: maven
 
       # 3. Pin Maven version
+      - name: Setup Maven
+        uses: stCarolas/setup-maven@v5
+        with:
+          maven-version: '3.9.12'
       #- name: Pin Maven to 3.9.11
       #  shell: bash
       #  run: |
