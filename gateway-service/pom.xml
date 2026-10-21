@@ -16,22 +16,25 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <dependencies>
-
-    <!-- Eureka 服务发现：版本由 Spring Cloud BOM 管理 -->
+<dependencies>
+    <!-- Eureka 服务发现 -->
     <dependency>
         <groupId>org.springframework.cloud</groupId>
         <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
     </dependency>
 
-        <!-- 按要求保留 Log4j Core -->
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-core</artifactId>
-            <version>2.23.1</version>
-        </dependency>
+    <!-- Spring Web -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
 
-    </dependencies>
+    <!-- 保留 Log4j Core -->
+    <dependency>
+        <groupId>org.apache.logging.log4j</groupId>
+        <artifactId>log4j-core</artifactId>
+        <version>2.23.1</version>
+    </dependency>
 
     <build>
         <finalName>gateway-service</finalName>
