@@ -2,12 +2,10 @@ package org.wangqing.microservices.edge;
 
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.cloud.netflix.zuul.EnableZuulProxy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.RestController;
 
 @SpringBootApplication
-@EnableZuulProxy
 @RestController
 public class Application {
 
