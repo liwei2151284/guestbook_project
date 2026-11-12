@@ -117,6 +117,8 @@ jobs:
           echo "Building image: $IMAGE"
 
           jf docker build \
+            --platform linux/amd64 \
+            --provenance=false \
             -t "$IMAGE" \
             --metadata-file=build-metadata \
             --output=type=image \
